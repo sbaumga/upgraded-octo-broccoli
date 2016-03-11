@@ -24,19 +24,96 @@ int w, h;
 double mouseX, mouseY;
 
 vector < int > lineTypes;
-vector < vector < vec2 > > lines;
+vector < vector < vec2 > > controlPoints;
 vector < vec2 > points;
+vector < vector < double > > knots;
+vector < vector < vec2 > > plottedPoints;
+int order = 4;
 bool drawing;
 int drawType = GROUND;
 
+
+/*
+* Finds delta for the given u using knots[lineNum]
+*/
+int findDelta(double u, int lineNum) {
+	for (int i = 0; i < knots[lineNum].size() - order; i++) {
+		if (u >= knots[lineNum][i] && u < knots[lineNum][i + 1]) {
+			return i;
+		}
+	}
+	return knots[lineNum].size() - order;
+}
+
+
+/*
+* Calculates the x and y coords of a B-spline curve at point u and pushes them to vectors
+* Uses deBoors algorithm
+* Interpolated from pseudo-code shown in class
+*/
+void calculateBSpline(double u, int lineNum) {
+	int delta = findDelta(u, lineNum);
+	vector<double> x, y;
+
+	for (int i = 0; i <= order - 1; i++) {
+		x.push_back(controlPoints[lineNum][delta - i].x);
+		y.push_back(controlPoints[lineNum][delta - i].y);
+	}
+
+	for (int r = order; r >= 2; r--) {
+		int i = delta;
+		for (int s = 0; s <= r - 2; s++) {
+			double denom = (knots[lineNum][i + r - 1] - knots[lineNum][i]);
+			double omega;
+			if (denom == 0) {
+				omega = 0;
+			}
+			else {
+				omega = (u - knots[lineNum][i]) / denom;
+			}
+			x[s] = omega*x[s] + (1 - omega) * x[s + 1];
+			y[s] = omega*y[s] + (1 - omega) * y[s + 1];
+			i--;
+		}
+	}
+
+	plottedPoints[lineNum].push_back(vec2(x[0], y[0]));
+}
+
+/*
+* Recalculates a standard knot sequence whenever a control point is added or removed
+*/
+void recalculateKnots(int lineNum) {
+	knots[lineNum].clear();
+
+	if (order <= controlPoints[lineNum].size()) {
+		int numKnots = controlPoints[lineNum].size() - (order - 2);
+		if (numKnots != 0) {
+			// Setting up standard knot sequence
+			for (int i = 0; i < order - 1; i++) {
+				knots[lineNum].push_back(0);
+
+			}
+
+			for (int i = 0; i < numKnots; i++) {
+				knots[lineNum].push_back((double)i / (numKnots - 1));
+			}
+
+			// Setting up standard knot sequence
+			for (int i = 0; i < order - 1; i++) {
+				knots[lineNum].push_back(1);
+			}
+		}
+	}
+}
 
 void renderDrawing() {
 	glBegin(GL_LINES);
 	
 
-	if (lines.size() >= 1) {
-		for (int i = 0; i < lines.size(); i++) {
-			vector < vec2 > line = lines[i];
+	if (plottedPoints.size() >= 1) {
+		for (int i = 0; i < plottedPoints.size(); i++) {
+			vector < vec2 > line = plottedPoints[i];
 			int type = lineTypes[i];
 			if (type == GROUND) {
 				// brown
@@ -48,6 +125,7 @@ void renderDrawing() {
 			else if (type == TREES) {
 				glColor3f(0.0, 1.0, 0.0);
 			}
+
 			for (int j = 0; j < line.size() - 1; j++) {
 				glVertex2d(line[j].x, line[j].y);
 				glVertex2d(line[j + 1].x, line[j + 1].y);
@@ -170,7 +248,16 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 	}
 	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 		drawing = false;
-		lines.push_back(points);
+		controlPoints.push_back(points);
+
+		vector <double> temp;
+		knots.push_back(temp);
+		recalculateKnots(controlPoints.size() - 1);
+		vector <vec2> temp2;
+		plottedPoints.push_back(temp2);
+		for (double i = 0; i < 1; i += 0.01) {
+			calculateBSpline(i, controlPoints.size() - 1);
+		}
 		points.clear();
 	}
 }
