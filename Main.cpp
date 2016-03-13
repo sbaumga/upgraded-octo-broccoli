@@ -31,6 +31,9 @@ vector < vector < vec2 > > plottedPoints;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
+double selectDistance = 0.05;
+
+bool renderTerrain = false;
 
 
 /*
@@ -133,6 +136,36 @@ void renderDrawing() {
 		}
 	}
 
+	glEnd();
+
+	// Draw circle when drawing near end point of line
+	// If cursor is in circle, last point of line will be the first point
+	// to create a fully connected loop
+	if (points.size() > 0) {
+		if (abs(points.front().x - mouseX) < selectDistance && abs(points.front().y - mouseY) < selectDistance) {
+			glBegin(GL_POLYGON);
+			if (drawType == GROUND) {
+				// brown
+				glColor3f(0.4, 0.2, 0.0);
+			}
+			else if (drawType == WATER) {
+				glColor3f(0.0, 0.0, 1.0);
+			}
+			else if (drawType == TREES) {
+				glColor3f(0.0, 1.0, 0.0);
+			}
+			for (double j = 0; j < 2 * M_PI; j += M_PI / 25) {
+				double pointX = sin(j) * 0.05 + points.front().x;
+				double pointY = cos(j) * 0.05 + points.front().y;
+				glVertex2d(pointX, pointY);
+			}
+
+			glEnd();
+		}
+	}
+
+
+	glBegin(GL_LINES);
 	if (points.size() > 1) {
 		if (drawType == GROUND) {
 			// brown
@@ -153,6 +186,52 @@ void renderDrawing() {
 	glEnd();
 }
 
+void renderGround(vector<vec2> points) {
+}
+
+void renderWater(vector<vec2> points){
+	double midIndex = (double)points.size() / 2.0;
+
+	vector<vec2> axisOfRevolution;
+	vector<double> angles;
+	vector<double> radii;
+	for (int i = 0; i < midIndex; i++) {
+		vec2 axis;
+		axis.x = (points[i].x + points[points.size() - 1 - i].x) / 2;
+		axis.y = (points[i].y + points[points.size() - 1 - i].y) / 2;
+		axisOfRevolution.push_back(axis);
+		// TODO: calculate angle
+		radii.push_back(length(axis - points[i]));
+	}
+	
+	vector < vector < vec3 > > waterPoints;
+	for (int i = 0; i < axisOfRevolution.size(); i++) {
+		vector<vec3> setOfpoints;
+		// Not 2 * PI because only want bottom of lake, not top as well
+		for (double j = 0; j < M_PI; j += M_PI / 25) {
+			// Make circle in 3d?
+		}
+	}
+}
+
+void renderTrees(vector<vec2> points) {
+
+}
+
+void render3D() {
+	for (int i = 0; i < plottedPoints.size(); i++) {
+		if (lineTypes[i] == GROUND) {
+			renderGround(plottedPoints[i]);
+		}
+		else if (lineTypes[i] == WATER) {
+			renderWater(plottedPoints[i]);
+		}
+		else {
+			renderTrees(plottedPoints[i]);
+		}
+	}
+}
+
 /*
  * Renders and calculates what to render
  */
@@ -171,7 +250,35 @@ void render() {
 	//gluPerspective (fov, aspect ratio, near plane, far plane)
 	//glFrustum
 
-	renderDrawing();
+
+	if (!renderTerrain) {
+		renderDrawing();
+	}
+	else {
+		render3D();
+	}
+}
+
+void finishLine() {
+	if (points.size() > 0) {
+		if (abs(points.front().x - mouseX) < selectDistance && abs(points.front().y - mouseY) < selectDistance) {
+			if (points.back().x != points.front().x && points.back().y != points.front().y) {
+				points.push_back(vec2(points.front().x, points.front().y));
+			}
+		}
+	}
+
+	controlPoints.push_back(points);
+
+	vector <double> temp;
+	knots.push_back(temp);
+	recalculateKnots(controlPoints.size() - 1);
+	vector <vec2> temp2;
+	plottedPoints.push_back(temp2);
+	for (double u = 0; u <= 1; u += 0.001) {
+		calculateBSpline(u, controlPoints.size() - 1);
+	}
+	points.clear();
 }
 
 GLFWwindow* initializeWindow()
@@ -221,44 +328,50 @@ GLFWwindow* initializeWindow()
 }
 
 void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_G && action == GLFW_PRESS) {
-		drawType = GROUND;
-		if (drawing) {
-			lineTypes.back() = drawType;
+	if (!renderTerrain) {
+		if (key == GLFW_KEY_G && action == GLFW_PRESS) {
+			drawType = GROUND;
+			if (drawing) {
+				lineTypes.back() = drawType;
+			}
+		}
+		else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+			drawType = WATER;
+			if (drawing) {
+				lineTypes.back() = drawType;
+			}
+		}
+		else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+			drawType = TREES;
+			if (drawing) {
+				lineTypes.back() = drawType;
+			}
+		}
+		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
+			renderTerrain = true;
+			if (drawing) {
+				finishLine();
+			}
 		}
 	}
-	else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-		drawType = WATER;
-		if (drawing) {
-			lineTypes.back() = drawType;
-		}
-	}
-	else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-		drawType = TREES;
-		if (drawing) {
-			lineTypes.back() = drawType;
+	else {
+		if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
+			renderTerrain = false;
 		}
 	}
 }
 
 void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		drawing = true;
-		lineTypes.push_back(drawType);
-	}
-	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-		drawing = false;
-		controlPoints.push_back(points);
-
-		vector <double> temp;
-		knots.push_back(temp);
-		recalculateKnots(controlPoints.size() - 1);
-		vector <vec2> temp2;
-		plottedPoints.push_back(temp2);
-		for (double i = 0; i < 1; i += 0.01) {
-			calculateBSpline(i, controlPoints.size() - 1);
+	if (!renderTerrain) {
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+			drawing = true;
+			lineTypes.push_back(drawType);
 		}
-		points.clear();
+		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+			drawing = false;
+
+			finishLine();
+		}
 	}
 }
 
@@ -266,18 +379,18 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	mouseX = (2 * x / w) - 1;
 	mouseY = (-2 * y / h) + 1;
 	
-	if (drawing) {
-		if (points.size() > 0) {
-			cout << x << ", " << points.back().x << "\n";
-			double distanceX = abs(mouseX - points.back().x);
-			double distanceY = abs(mouseY - points.back().y);
-			cout << distanceX << "\n";
-			if (distanceX >= 0.01 || distanceY >= 0.01) {
+	if (!renderTerrain) {
+		if (drawing) {
+			if (points.size() > 0) {
+				double distanceX = abs(mouseX - points.back().x);
+				double distanceY = abs(mouseY - points.back().y);
+				if (distanceX >= 0.01 || distanceY >= 0.01) {
+					points.push_back(vec2(mouseX, mouseY));
+				}
+			}
+			else {
 				points.push_back(vec2(mouseX, mouseY));
 			}
-		}
-		else {
-			points.push_back(vec2(mouseX, mouseY));
 		}
 	}
 }
