@@ -32,6 +32,7 @@ int order = 4;
 bool drawing;
 int drawType = GROUND;
 double selectDistance = 0.05;
+float rotateX, rotateZ = 0;
 
 bool renderTerrain = false;
 
@@ -202,7 +203,6 @@ void renderWater(vector<vec2> points){
 		axis.y = (points[i].y + points[points.size() - 1 - i].y) / 2;
 		axis.z = axis.y;
 		axisOfRevolution.push_back(axis);
-		// TODO: calculate angle
 		vec3 temp;
 		temp.x = points[i].x;
 		temp.y = points[i].y;
@@ -265,6 +265,10 @@ void render() {
 	//Functions for changing transformation matrix
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	if (renderGround) {
+		glRotatef(rotateX, 1.0f, 0.0f, 0.0f);
+		glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
+	}
 
 	//Functions for changing projection matrix
 	glMatrixMode(GL_PROJECTION);
@@ -380,6 +384,28 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 	else {
 		if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = false;
+			rotateX = 0.f;
+			rotateZ = 0.f;
+		}
+		else if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+			if (renderGround) {
+				rotateX += 1.0f;
+			}
+		}
+		else if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+			if (renderGround) {
+				rotateX -= 1.0f;
+			}
+		}
+		else if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+			if (renderGround) {
+				rotateZ -= 1.0f;
+			}
+		}
+		else if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+			if (renderGround) {
+				rotateZ += 1.0f;
+			}
 		}
 	}
 }
