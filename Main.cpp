@@ -192,25 +192,48 @@ void renderGround(vector<vec2> points) {
 void renderWater(vector<vec2> points){
 	double midIndex = (double)points.size() / 2.0;
 
-	vector<vec2> axisOfRevolution;
-	vector<double> angles;
+	vector<vec3> axisOfRevolution;
+	vector<vec3> normals;
+	vector<vec3> circDirection;
 	vector<double> radii;
 	for (int i = 0; i < midIndex; i++) {
-		vec2 axis;
+		vec3 axis;
 		axis.x = (points[i].x + points[points.size() - 1 - i].x) / 2;
 		axis.y = (points[i].y + points[points.size() - 1 - i].y) / 2;
+		axis.z = axis.y;
 		axisOfRevolution.push_back(axis);
 		// TODO: calculate angle
-		radii.push_back(length(axis - points[i]));
+		vec3 temp;
+		temp.x = points[i].x;
+		temp.y = points[i].y;
+		temp.z = temp.y;
+		radii.push_back(length(axis - temp));
+		circDirection.push_back(normalize(axis - temp));
 	}
-	
+
+	for (int i = 0; i < axisOfRevolution.size() - 1; i++) {
+		normals.push_back(normalize(axisOfRevolution[i + 1] - axisOfRevolution[i]));
+	}
+	normals.push_back(normals.back());
+
 	vector < vector < vec3 > > waterPoints;
 	for (int i = 0; i < axisOfRevolution.size(); i++) {
 		vector<vec3> setOfpoints;
-		// Not 2 * PI because only want bottom of lake, not top as well
-		for (double j = 0; j < M_PI; j += M_PI / 25) {
-			// Make circle in 3d?
+		// Starts at PI because only want bottom of lake, not top as well
+		for (double j = M_PI; j < 2 * M_PI; j += M_PI / 25) {
+			setOfpoints.push_back((float)(radii[i] * cos(j)) * circDirection[i] + (float)(radii[i] * sin(j))*cross(normals[i], circDirection[i]) + axisOfRevolution[i]);
 		}
+		waterPoints.push_back(setOfpoints);
+	}
+
+	for (int i = 0; i < waterPoints.size() - 1; i++) {
+		glBegin(GL_QUAD_STRIP);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		for (int j = 0; j < waterPoints[i].size(); j++) {
+			glVertex3d(waterPoints[i][j].x, waterPoints[i][j].y, waterPoints[i + 1][j].z);
+			glVertex3d(waterPoints[i + 1][j].x, waterPoints[i + 1][j].y, waterPoints[i + 1][j].z);
+		}
+		glEnd();
 	}
 }
 
