@@ -28,6 +28,7 @@ vector < vector < vec2 > > controlPoints;
 vector < vec2 > points;
 vector < vector < double > > knots;
 vector < vector < vec2 > > plottedPoints;
+double uStep = 1000;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
@@ -325,7 +326,7 @@ void finishLine() {
 	recalculateKnots(controlPoints.size() - 1);
 	vector <vec2> temp2;
 	plottedPoints.push_back(temp2);
-	for (double u = 0; u <= 1; u += 0.001) {
+	for (double u = 0; u <= 1; u += 1.0 / uStep) {
 		calculateBSpline(u, controlPoints.size() - 1);
 	}
 	points.clear();
