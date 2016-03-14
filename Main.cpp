@@ -191,35 +191,58 @@ void renderGround(vector<vec2> points) {
 }
 
 void renderWater(vector<vec2> points){
+	// Index of the middle point of the curve
+	// double so if the number of points is even
+	// mid index will be x.5
 	double midIndex = (double)points.size() / 2.0;
 
+	// The line the curve gets revolved around
 	vector<vec3> axisOfRevolution;
+	// Normals for each circle
+	// They are normalized
 	vector<vec3> normals;
+	// A normalized vector from the centre of the circle to
+	// any point on the circumference
+	// Uses vector from axis of revolution to point on plotted line
 	vector<vec3> circDirection;
+	// The radius for each circle
 	vector<double> radii;
+
+	/*
+	 * Loop through half the points
+	 * If there  are an odd number of points, the middle one is never reached
+	 */
 	for (int i = 0; i < midIndex; i++) {
 		vec3 axis;
+		// Saves the midpoint between the ith points coming from both ends of the curve
 		axis.x = (points[i].x + points[points.size() - 1 - i].x) / 2;
 		axis.y = (points[i].y + points[points.size() - 1 - i].y) / 2;
+		// z = y, might need to change this later
 		axis.z = axis.y;
 		axisOfRevolution.push_back(axis);
 		vec3 temp;
 		temp.x = points[i].x;
 		temp.y = points[i].y;
 		temp.z = temp.y;
+		// Radius is the distance from the axis to the associated point on the curve 
 		radii.push_back(length(axis - temp));
+		// CircDirection is normalized radius
 		circDirection.push_back(normalize(axis - temp));
 	}
 
+	// Normal calculations probably not right
+	// Normal is just distance between first axis point to next
 	for (int i = 0; i < axisOfRevolution.size() - 1; i++) {
 		normals.push_back(normalize(axisOfRevolution[i + 1] - axisOfRevolution[i]));
 	}
+	// Last normal is just copy of second last as there is no next axis point to use
 	normals.push_back(normals.back());
 
 	vector < vector < vec3 > > waterPoints;
 	for (int i = 0; i < axisOfRevolution.size(); i++) {
 		vector<vec3> setOfpoints;
 		// Starts at PI because only want bottom of lake, not top as well
+		// Creates a circle from the ith point to the (numPoints - i)th point
 		for (double j = M_PI; j < 2 * M_PI; j += M_PI / 25) {
 			setOfpoints.push_back((float)(radii[i] * cos(j)) * circDirection[i] + (float)(radii[i] * sin(j))*cross(normals[i], circDirection[i]) + axisOfRevolution[i]);
 		}
@@ -230,7 +253,7 @@ void renderWater(vector<vec2> points){
 		glBegin(GL_QUAD_STRIP);
 		glColor3f(0.0f, 0.0f, 1.0f);
 		for (int j = 0; j < waterPoints[i].size(); j++) {
-			glVertex3d(waterPoints[i][j].x, waterPoints[i][j].y, waterPoints[i + 1][j].z);
+			glVertex3d(waterPoints[i][j].x, waterPoints[i][j].y, waterPoints[i][j].z);
 			glVertex3d(waterPoints[i + 1][j].x, waterPoints[i + 1][j].y, waterPoints[i + 1][j].z);
 		}
 		glEnd();
