@@ -7,6 +7,9 @@
 #include <vector>
 #include <cmath>
 
+#include "Renderer.h"
+#include "camera.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 using namespace std;
