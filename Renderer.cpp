@@ -59,6 +59,22 @@ void Renderer::generateIDs()
 	glErrorCheck("End generate IDs");
 }
 
+void Renderer::deleteIDs()
+{
+	glDeleteVertexArrays(VAO::COUNT, vao);
+	glDeleteBuffers(VBO::COUNT, vbo);
+	for (unsigned int i = 0; i < Shader::COUNT; i++)
+	{
+		glDeleteProgram(shader[i]);
+	}
+}
+
+void Renderer::updateTransform()
+{
+	transform = winRatio*projection*cam->getMatrix();
+	modelview = cam->getMatrix();
+}
+
 void Renderer::loadShaders()
 {
 	string vertSource = loadShaderStringFromFile("./src/drawing.vert");
@@ -248,4 +264,43 @@ void resizeEvent(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 
 	updateWinRatio();
+}
+
+void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<unsigned int>* indices)
+{
+
+	float widthInc = width / (float)(widthPoints- 1);
+	float depthInc = depth / (float)(depthPoints - 1);
+
+	for (float i = 0; i < depthPoints; i++)
+	{
+		for (float j = 0; j < widthPoints; j++)
+		{
+			points->push_back(vec3(
+				widthInc*i,
+				depthInc*j,
+				0.f));
+			normals->push_back(vec3(0.f, 1.f, 0.f));
+		}
+	}
+
+	for (unsigned int i = 0; i < depthPoints - 1; i++)
+	{
+		for (unsigned int j = 0; j < widthPoints - 1; j++)
+		{
+			unsigned int p00, p01, p10, p11;
+			p00 = i*widthPoints + j;
+			p01 = i*widthPoints + j + 1;
+			p10 = (i + 1)*widthPoints + j;
+			p11 = (i + 1)*widthPoints + j + 1;
+
+			indices->push_back(p00);
+			indices->push_back(p01);
+			indices->push_back(p11);
+
+			indices->push_back(p00);
+			indices->push_back(p11);
+			indices->push_back(p10);	
+		}
+	}
 }

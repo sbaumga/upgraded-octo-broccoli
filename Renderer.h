@@ -36,10 +36,6 @@ private:
 	mat4 transform;
 	mat4 modelview;
 
-	unsigned int drawBufferSize;
-	unsigned int modelBufferSize;
-	unsigned int modelIndicesSize;
-
 	vector<vec3>* modelVertices;
 	vector<vec3>* modelNormals;
 	vector<unsigned int>* modelIndices;
@@ -86,7 +82,7 @@ public:
 
 void resizeEvent(GLFWwindow* window, int width, int height);
 
-
+void generatePlane(unsigned int widthSegments, unsigned int depthSegments, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<unsigned int>* indices);
 
 
 #endif
