@@ -28,7 +28,7 @@ float torranceSparrowLighting()
 
 void main(){
     
-	vec3 color = vec3(1.f, 1.f, 1.f);
+	vec3 color = vec3(1.f, 0.f, 0.f);
 
     fragColor = torranceSparrowLighting()*color;
 }

@@ -62,8 +62,6 @@ private:
 	void loadModelUniforms();
 	void loadDrawingUniforms(vec3 color);
 
-	void updateTransform();
-
 public:
 	//Members
 	vec3 light;
@@ -78,6 +76,8 @@ public:
 	void loadDrawBuffer(vector<vec2>* vertices);
 
 	void loadCamera(Camera* cam);
+
+	void updateTransform();
 
 	void render2DView(vec3 color);
 	void render3DView();

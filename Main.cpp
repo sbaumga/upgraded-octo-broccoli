@@ -282,7 +282,7 @@ void renderTrees(vector<vec2> points) {
 }
 
 void render3D() {
-	for (int i = 0; i < plottedPoints.size(); i++) {
+	/*for (int i = 0; i < plottedPoints.size(); i++) {
 		if (lineTypes[i] == GROUND) {
 			renderGround(plottedPoints[i]);
 		}
@@ -292,7 +292,10 @@ void render3D() {
 		else {
 			renderTrees(plottedPoints[i]);
 		}
-	}
+	}*/
+
+	r.updateTransform();
+	r.render3DView();
 }
 
 /*
@@ -504,7 +507,7 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	{
 		if (rotatingCamera)
 		{
-			lookat.rotateViewAround(diff.x, diff.y);
+			lookat.rotateViewAround(-diff.x, -diff.y);
 		}
 	}
 }
@@ -517,7 +520,7 @@ void scroll(GLFWwindow *sender, double x, double y) {
 void init()
 {
 	//Setup renderer
-	lookat = Camera(vec3(0.f, 0.f, -1.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 2.f));
+	lookat = Camera(vec3(0.f, 0.f, -1.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 2.f), MODELVIEWER_CAMERA);
 
 	r.projection = perspectiveMatrix(0.1f, 10.f, 80.f);
 	r.loadCamera(&lookat);

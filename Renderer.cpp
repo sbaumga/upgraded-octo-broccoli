@@ -98,12 +98,14 @@ void Renderer::updateTransform()
 
 void Renderer::loadShaders()
 {
-	string vertSource = loadShaderStringFromFile("./src/drawing.vert");
-	string fragSource = loadShaderStringFromFile("./src/drawing.frag");
+	string vertSource = loadShaderStringFromFile("./drawing.vert");
+	string fragSource = loadShaderStringFromFile("./drawing.frag");
+	printf("Compiling drawing shaders\n");
 	shader[Shader::DRAWING] = CreateShaderProgram(vertSource, fragSource);
 
-	vertSource = loadShaderStringFromFile("./src/model.vert");
-	fragSource = loadShaderStringFromFile("./src/model.frag");
+	vertSource = loadShaderStringFromFile("./model.vert");
+	fragSource = loadShaderStringFromFile("./model.frag");
+	printf("Compiling model shaders\n");
 	shader[Shader::MODEL] = CreateShaderProgram(vertSource, fragSource);
 }
 
@@ -136,7 +138,7 @@ void Renderer::setupVAOs()
 		);*/
 
 	//Model vao
-	glBindVertexArray(vbo[VBO::MODEL_VERTS]);
+	glBindVertexArray(vao[VAO::MODEL]);
 	//Vertex array
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::MODEL_VERTS]);
@@ -150,6 +152,7 @@ void Renderer::setupVAOs()
 		);
 	//Normal array
 	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::MODEL_NORMALS]);
 	glVertexAttribPointer(
 		1,				//Attribute
 		3,				//Size
@@ -176,6 +179,7 @@ void Renderer::loadModelUniforms()
 	uniformLocation = glGetUniformLocation(shader[Shader::MODEL], "viewPos");
 	glUniform3f(uniformLocation, cam->getPos().x, cam->getPos().y, cam->getPos().z);
 
+	glErrorCheck("loadModelUniforms");
 }
 
 void Renderer::loadDrawingUniforms(vec3 color)
@@ -262,6 +266,8 @@ void Renderer::render2DView(vec3 color)
 
 	glDrawArrays(GL_LINE_STRIP, 0, drawingVertices->size());
 
+	glUseProgram(0);
+
 	glErrorCheck("End render 2D");
 }
 
@@ -271,11 +277,17 @@ void Renderer::render3DView()
 
 	glUseProgram(shader[Shader::MODEL]);
 
+	glErrorCheck("Use program");
+
 	loadModelUniforms();
 
 	glBindVertexArray(vao[VAO::MODEL]);
 
-	glDrawElements(GL_TRIANGLES, modelIndices->size(), GL_UNSIGNED_INT, modelIndices);
+	glErrorCheck("Bind array");
+
+	glDrawElements(GL_TRIANGLES, modelIndices->size(), GL_UNSIGNED_INT, (void*)0);
+
+	glUseProgram(0);
 
 	glErrorCheck("End render 3D");
 }
@@ -302,14 +314,17 @@ void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float wid
 	float widthInc = width / (float)(widthPoints- 1);
 	float depthInc = depth / (float)(depthPoints - 1);
 
+	float wOffset = - width / 2.f;
+	float dOffset = - depth / 2.f;
+
 	for (float i = 0; i < depthPoints; i++)
 	{
 		for (float j = 0; j < widthPoints; j++)
 		{
 			points->push_back(vec3(
-				widthInc*i,
-				depthInc*j,
-				0.f));
+				widthInc*i + wOffset,
+				0.f,
+				depthInc*j + dOffset));
 			normals->push_back(vec3(0.f, 1.f, 0.f));
 		}
 	}
