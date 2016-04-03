@@ -36,6 +36,11 @@ private:
 	mat4 transform;
 	mat4 modelview;
 
+	mat4 transform2D;
+	
+	mat4 panning2D;
+	mat4 scaling2D;
+
 	vector<vec3>* modelVertices;
 	vector<vec3>* modelNormals;
 	vector<unsigned int>* modelIndices;
@@ -55,7 +60,7 @@ private:
 	void loadShaders();
 
 	void loadModelUniforms();
-	void loadDrawingUniforms();
+	void loadDrawingUniforms(vec3 color);
 
 	void updateTransform();
 
@@ -65,20 +70,23 @@ public:
 	mat4 projection;
 
 	//Functions
+	Renderer() {}		//Temporary, not sufficient
 	Renderer(GLFWwindow* window);
 
 	void loadModelBuffer(vector<vec3>* vertices, vector<vec3>* normals, vector<unsigned int>* indices);
 
-	void loadDrawBuffer(vector<vec2>* vertices, vector<vec3>* color);
+	void loadDrawBuffer(vector<vec2>* vertices);
 
 	void loadCamera(Camera* cam);
 
-	void render2DView();
+	void render2DView(vec3 color);
 	void render3DView();
+
+	mat4 getWinRatio();
 
 };
 
-
+mat4 perspectiveMatrix(float n, float f, float fov);
 
 void resizeEvent(GLFWwindow* window, int width, int height);
 

@@ -69,10 +69,31 @@ void Renderer::deleteIDs()
 	}
 }
 
+mat4 perspectiveMatrix(float n, float f, float fov)
+{
+	float angle = fov*M_PI / 180.f;
+
+	float width = tan(angle*0.5f)*n;
+	float height = tan(angle*0.5f)*n;
+
+	mat4 perspective = mat4(1.0);
+
+	perspective[0][0] = n / width;
+	perspective[1][1] = n / height;
+	perspective[2][2] = -(f + n) / (f - n);
+	perspective[3][2] = -2 * f*n / (f - n);
+	perspective[2][3] = -1.f;
+	perspective[3][3] = 0.f;
+
+	return perspective;
+}
+
 void Renderer::updateTransform()
 {
 	transform = winRatio*projection*cam->getMatrix();
 	modelview = cam->getMatrix();
+
+	transform2D = scaling2D*panning2D;
 }
 
 void Renderer::loadShaders()
@@ -103,7 +124,7 @@ void Renderer::setupVAOs()
 		sizeof(vec2),	//Stride
 		(void*)0		//Offset
 		);
-	//Normal array
+/*	//Normal array
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(
 		1,				//Attribute
@@ -112,7 +133,7 @@ void Renderer::setupVAOs()
 		GL_FALSE,		//Normalized
 		sizeof(vec3),	//Stride
 		(void*)0		//Offset
-		);
+		);*/
 
 	//Model vao
 	glBindVertexArray(vbo[VBO::MODEL_VERTS]);
@@ -157,9 +178,13 @@ void Renderer::loadModelUniforms()
 
 }
 
-void Renderer::loadDrawingUniforms()
+void Renderer::loadDrawingUniforms(vec3 color)
 {
-	GLuint uniformLocation = glGetUniformLocation(shader[Shader::MODEL], "transform");
+	GLuint uniformLocation = glGetUniformLocation(shader[Shader::DRAWING], "transform");
+	glUniformMatrix4fv(uniformLocation, 1, false, &transform2D[0][0]);
+
+	uniformLocation = glGetUniformLocation(shader[Shader::DRAWING], "color");
+	glUniform3f(uniformLocation, color.x, color.y, color.z);
 }
 
 void Renderer::loadModelBuffer(vector<vec3>* vertices, vector<vec3>* normals, vector<unsigned int>* indices)
@@ -194,28 +219,28 @@ void Renderer::loadModelBuffer(vector<vec3>* vertices, vector<vec3>* normals, ve
 	glBindVertexArray(0);
 }
 
-void Renderer::loadDrawBuffer(vector<vec2>* vertices, vector<vec3>* color)
+void Renderer::loadDrawBuffer(vector<vec2>* vertices)
 {
 	drawingVertices = vertices;
-	drawingColors = color;
+//	drawingColors = color;
 
-	glBindVertexArray(vao[VAO::MODEL]);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::MODEL_VERTS]);
+	glBindVertexArray(vao[VAO::DRAWING]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::DRAWING_VERTS]);
 
 	glBufferData(GL_ARRAY_BUFFER,
 		sizeof(vec2)*vertices->size(),
 		vertices->data(),
-		GL_STATIC_DRAW
+		GL_DYNAMIC_DRAW
 		);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::MODEL_NORMALS]);
+/*	glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO::MODEL_NORMALS]);
 	glBufferData(GL_ARRAY_BUFFER,
 		sizeof(vec3)*color->size(),
 		color->data(),
 		GL_STATIC_DRAW
 		);
 
-	glBindVertexArray(0);
+	glBindVertexArray(0);*/
 }
 
 
@@ -225,17 +250,17 @@ void Renderer::loadCamera(Camera* _cam)
 	cam = _cam;
 }
 
-void Renderer::render2DView()
+void Renderer::render2DView(vec3 color)
 {
 	glErrorCheck("Begin render 2D");
 
 	glUseProgram(shader[Shader::DRAWING]);
 
-	loadDrawingUniforms();
+	loadDrawingUniforms(color);
 
 	glBindVertexArray(vao[VAO::DRAWING]);
 
-	glDrawArrays(GL_LINES, 0, drawingVertices->size());
+	glDrawArrays(GL_LINE_STRIP, 0, drawingVertices->size());
 
 	glErrorCheck("End render 2D");
 }
@@ -264,6 +289,11 @@ void resizeEvent(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 
 	updateWinRatio();
+}
+
+mat4 Renderer::getWinRatio()
+{
+	return winRatio;
 }
 
 void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<unsigned int>* indices)

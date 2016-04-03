@@ -40,6 +40,19 @@ float rotateX, rotateZ = 0;
 
 bool renderTerrain = false;
 
+//3D manipulation
+Camera lookat;
+vec2 lastPos;		//Last mouse position
+bool rotatingCamera = false;
+
+//Terrain
+vector<vec3> terrainPoints;
+vector<vec3> terrainNormals;
+vector<unsigned int> terrainIndices;
+
+//Rendering
+Renderer r;
+
 
 /*
 * Finds delta for the given u using knots[lineNum]
@@ -449,11 +462,29 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 			finishLine();
 		}
 	}
+	else
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT){
+			if (action == GLFW_PRESS){
+				rotatingCamera = true;
+			}
+			else if (action == GLFW_RELEASE){
+				rotatingCamera = false;
+			}
+				
+
+		}
+	}
 }
+
 
 void mousePos(GLFWwindow *sender, double x, double y) {	
 	mouseX = (2 * x / w) - 1;
 	mouseY = (-2 * y / h) + 1;
+
+	vec2 diff = vec2(mouseX, mouseY) - lastPos;
+
+	lastPos = vec2(mouseX, mouseY);
 	
 	if (!renderTerrain) {
 		if (drawing) {
@@ -469,10 +500,36 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 			}
 		}
 	}
+	else
+	{
+		if (rotatingCamera)
+		{
+			lookat.rotateViewAround(diff.x, diff.y);
+		}
+	}
 }
 
 void scroll(GLFWwindow *sender, double x, double y) {
 	
+}
+
+
+void init()
+{
+	//Setup renderer
+	lookat = Camera(vec3(0.f, 0.f, -1.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 2.f));
+
+	r.projection = perspectiveMatrix(0.1f, 10.f, 80.f);
+	r.loadCamera(&lookat);
+
+	glClearColor(1.f, 1.f, 1.f, 1.f);
+
+	//InitializePlane
+	generatePlane(50, 50, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainIndices);
+
+	r.loadModelBuffer(&terrainPoints, &terrainNormals, &terrainIndices);
+
+
 }
 
 int main() {
@@ -481,12 +538,17 @@ int main() {
 		return -1;
 	}
 
+	r = Renderer(window);
+
 	drawing = false;
 
 	glfwSetKeyCallback(window, keyboard);
 	glfwSetMouseButtonCallback(window, mouseClick);
 	glfwSetCursorPosCallback(window, mousePos);
 	glfwSetScrollCallback(window, scroll);
+
+	init();
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0, 0, w, h);
