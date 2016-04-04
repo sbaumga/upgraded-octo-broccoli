@@ -48,7 +48,13 @@ bool rotatingCamera = false;
 //Terrain
 vector<vec3> terrainPoints;
 vector<vec3> terrainNormals;
+vector<vec2> terrainUVs;
 vector<unsigned int> terrainIndices;
+
+unsigned int OCTAVES = 6;
+float PERSISTENCE = 0.3f;
+
+PerlinNoise noise(OCTAVES, PERSISTENCE);
 
 //Rendering
 Renderer r;
@@ -351,6 +357,31 @@ void finishLine() {
 	points.clear();
 }
 
+
+void createRandomizedPlane()
+{
+	cout << "Create new plane";
+
+	noise = PerlinNoise(OCTAVES, PERSISTENCE);
+
+	//Initialize Plane
+	generatePlane(50, 50, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
+
+	float scale = 1.f;
+
+	//Add perlin noise to plane
+	for (unsigned int i = 0; i < terrainPoints.size(); i++)
+	{
+		vec2 uv = terrainUVs[i];
+		vec3 point = terrainPoints[i];
+
+		terrainPoints[i] = vec3(point.x, noise.get(uv.x, uv.y)*scale - scale*0.5, point.z);
+		terrainNormals[i] = noise.getNormal(uv.x, uv.y);
+	}
+
+	r.loadModelBuffer(&terrainPoints, &terrainNormals, &terrainIndices);
+}
+
 GLFWwindow* initializeWindow()
 {
 
@@ -450,6 +481,8 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				rotateZ += 1.0f;
 			}
 		}
+		else if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS))
+			createRandomizedPlane();
 	}
 }
 
@@ -517,6 +550,7 @@ void scroll(GLFWwindow *sender, double x, double y) {
 }
 
 
+
 void init()
 {
 	//Setup renderer
@@ -527,10 +561,7 @@ void init()
 
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 
-	//InitializePlane
-	generatePlane(50, 50, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainIndices);
-
-	r.loadModelBuffer(&terrainPoints, &terrainNormals, &terrainIndices);
+	createRandomizedPlane();
 
 
 }

@@ -63,12 +63,14 @@ float Octave::getValueAt(float x, float y)
 
 PerlinNoise::PerlinNoise()
 {
-    
+	srand(time(0));
 }
 
 
 PerlinNoise::PerlinNoise(int _maxFreq, float _persistence)
 {
+	srand(time(0));
+
     for(int i=0; i<_maxFreq; i++)
     {
         octaves.push_back(Octave(i, _persistence));
@@ -85,6 +87,17 @@ float PerlinNoise::get(float x, float y)
     }
 
     return value;
+}
+
+glm::vec3 PerlinNoise::getNormal(float x, float y)
+{
+	float inc = 0.0001;
+
+	glm::vec3 base(0.f, get(x, y), 0.f);
+	glm::vec3 u(inc, get(x + inc, y), 0.f);
+	glm::vec3 v(0.f, get(x, y + inc), inc);
+
+	return normalize(cross((v - base), (u - base)));
 }
 
 

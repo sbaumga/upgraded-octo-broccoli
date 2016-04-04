@@ -308,8 +308,12 @@ mat4 Renderer::getWinRatio()
 	return winRatio;
 }
 
-void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<unsigned int>* indices)
+void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<vec2>* uvs, vector<unsigned int>* indices)
 {
+	points->clear();
+	normals->clear();
+	uvs->clear();
+	indices->clear();
 
 	float widthInc = width / (float)(widthPoints- 1);
 	float depthInc = depth / (float)(depthPoints - 1);
@@ -326,6 +330,7 @@ void generatePlane(unsigned int widthPoints, unsigned int depthPoints, float wid
 				0.f,
 				depthInc*j + dOffset));
 			normals->push_back(vec3(0.f, 1.f, 0.f));
+			uvs->push_back(vec2(j / (float)(widthPoints-1), i / (float)(depthPoints-1)));
 		}
 	}
 

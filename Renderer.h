@@ -90,7 +90,7 @@ mat4 perspectiveMatrix(float n, float f, float fov);
 
 void resizeEvent(GLFWwindow* window, int width, int height);
 
-void generatePlane(unsigned int widthSegments, unsigned int depthSegments, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<unsigned int>* indices);
+void generatePlane(unsigned int widthSegments, unsigned int depthSegments, float width, float depth, vector<vec3>* points, vector<vec3>* normals, vector<vec2>* uvs, vector<unsigned int>* indices);
 
 
 #endif

@@ -5,8 +5,10 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <glm/glm.hpp>
  
 #include <vector>
+#include <ctime>
 #include <math.h>
 
 #define M_PI 3.14159265359
@@ -45,6 +47,8 @@ public:
 	PerlinNoise(int _maxFreq, float _persistence);
 
 	float get(float x, float y);
+
+	glm::vec3 getNormal(float x, float y);
 };
 
 
