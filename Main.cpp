@@ -354,6 +354,7 @@ void finishLine() {
 	for (double u = 0; u <= 1; u += 1.0 / uStep) {
 		calculateBSpline(u, controlPoints.size() - 1);
 	}
+	calculateBSpline(0.99999999999, controlPoints.size() - 1);
 	points.clear();
 }
 
@@ -442,12 +443,15 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				lineTypes.back() = drawType;
 			}
 		}
+		/*
+		Removed as will not be doing tree stuff
 		else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
 			drawType = TREES;
 			if (drawing) {
 				lineTypes.back() = drawType;
 			}
 		}
+		*/
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
 			if (drawing) {
