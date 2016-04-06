@@ -59,7 +59,8 @@ PerlinNoise noise(OCTAVES, PERSISTENCE);
 //Rendering
 Renderer r;
 
-
+float xTrans, yTrans, zTrans = 0.0f;
+float scale = 1.0f;
 /*
 * Finds delta for the given u using knots[lineNum]
 */
@@ -314,10 +315,13 @@ void render() {
 	//Functions for changing transformation matrix
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	glTranslatef(xTrans, yTrans, zTrans);
 	if (renderGround) {
 		glRotatef(rotateX, 1.0f, 0.0f, 0.0f);
 		glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
 	}
+	glScalef(scale, scale, scale);
 
 	//Functions for changing projection matrix
 	glMatrixMode(GL_PROJECTION);
@@ -443,15 +447,17 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				lineTypes.back() = drawType;
 			}
 		}
-		/*
-		Removed as will not be doing tree stuff
+		
 		else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+			/*
+			Removed as will not be doing tree stuff
 			drawType = TREES;
 			if (drawing) {
 				lineTypes.back() = drawType;
 			}
+			*/
 		}
-		*/
+		
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
 			if (drawing) {
@@ -485,8 +491,27 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				rotateZ += 1.0f;
 			}
 		}
-		else if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS))
+		else if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS)) {
 			createRandomizedPlane();
+		}
+	}
+	if (key == GLFW_KEY_I && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		yTrans += 0.1f;
+	}
+	else if (key == GLFW_KEY_K && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		yTrans -= 0.1f;
+	}
+	else if (key == GLFW_KEY_L && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		xTrans += 0.1f;
+	}
+	else if (key == GLFW_KEY_J && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		xTrans -= 0.1f;
+	}
+	else if (key == GLFW_KEY_O && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		zTrans += 0.1f;
+	}
+	else if (key == GLFW_KEY_U && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		zTrans -= 0.1f;
 	}
 }
 
@@ -550,7 +575,11 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 }
 
 void scroll(GLFWwindow *sender, double x, double y) {
-	
+	scale = scale + 0.1f * y;
+	if (scale <= 0.0f) {
+		scale = 0.1f;
+	}
+	cout << scale << "\n";
 }
 
 
