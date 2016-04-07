@@ -496,22 +496,22 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 		}
 	}
 	if (key == GLFW_KEY_I && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		yTrans += 0.1f;
+		yTrans += 0.01f;
 	}
 	else if (key == GLFW_KEY_K && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		yTrans -= 0.1f;
+		yTrans -= 0.01f;
 	}
 	else if (key == GLFW_KEY_L && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		xTrans += 0.1f;
+		xTrans += 0.01f;
 	}
 	else if (key == GLFW_KEY_J && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		xTrans -= 0.1f;
+		xTrans -= 0.01f;
 	}
 	else if (key == GLFW_KEY_O && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		zTrans += 0.1f;
+		zTrans += 0.01f;
 	}
 	else if (key == GLFW_KEY_U && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-		zTrans -= 0.1f;
+		zTrans -= 0.01f;
 	}
 }
 
@@ -544,8 +544,8 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 
 
 void mousePos(GLFWwindow *sender, double x, double y) {	
-	mouseX = (2 * x / w) - 1;
-	mouseY = (-2 * y / h) + 1;
+	mouseX = (2 * x / w) - 1 - xTrans;
+	mouseY = (-2 * y / h) + 1 - yTrans;
 
 	vec2 diff = vec2(mouseX, mouseY) - lastPos;
 
