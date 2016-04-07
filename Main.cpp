@@ -547,6 +547,9 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	mouseX = (2 * x / w) - 1 - xTrans;
 	mouseY = (-2 * y / h) + 1 - yTrans;
 
+	mouseX = mouseX / scale;
+	mouseY = mouseY / scale;
+
 	vec2 diff = vec2(mouseX, mouseY) - lastPos;
 
 	lastPos = vec2(mouseX, mouseY);
