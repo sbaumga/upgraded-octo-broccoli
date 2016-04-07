@@ -61,6 +61,180 @@ Renderer r;
 
 float xTrans, yTrans, zTrans = 0.0f;
 float scale = 1.0f;
+
+// Define Infinite (Using INT_MAX caused overflow problems)
+#define INF 10000
+
+// Given three colinear points p, q, r, the function checks if
+// point q lies on line segment 'pr'
+bool onSegment(vec2 p, vec2 q, vec2 r)
+{
+	if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) &&
+		q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y))
+		return true;
+	return false;
+}
+
+// To find orientation of ordered triplet (p, q, r).
+// The function returns following values
+// 0 --> p, q and r are colinear
+// 1 --> Clockwise
+// 2 --> Counterclockwise
+int orientation(vec2 p, vec2 q, vec2 r)
+{
+	int val = (q.y - p.y) * (r.x - q.x) -
+		(q.x - p.x) * (r.y - q.y);
+
+	if (val == 0) return 0;  // colinear
+	return (val > 0) ? 1 : 2; // clock or counterclock wise
+}
+
+
+// The function that returns true if line segment 'p1q1'
+// and 'p2q2' intersect
+bool doIntersect(vec2 p1, vec2 q1, vec2 p2, vec2 q2) {
+	// Find the four orientations needed for general and
+	// special cases
+	int o1 = orientation(p1, q1, p2);
+	int o2 = orientation(p1, q1, q2);
+	int o3 = orientation(p2, q2, p1);
+	int o4 = orientation(p2, q2, q1);
+
+	// General case
+	if (o1 != o2 && o3 != o4)
+		return true;
+
+	// Special Cases
+	// p1, q1 and p2 are colinear and p2 lies on segment p1q1
+	if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+
+	// p1, q1 and p2 are colinear and q2 lies on segment p1q1
+	if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+
+	// p2, q2 and p1 are colinear and p1 lies on segment p2q2
+	if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+
+	// p2, q2 and q1 are colinear and q1 lies on segment p2q2
+	if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+	return false; // Doesn't fall in any of the above cases
+}
+
+bool isInside(vector<vec2> line, vec2 point) {
+	if (line.size() < 3) {
+		return false;
+	}
+
+	vec2 extreme = vec2(INF, point.y);
+	
+	// Count intersections of the extreme line with sides of line
+	int count = 0;
+	int i = 0;
+	do {
+		int next = (i + 1) % line.size();
+
+		// Check if the line segment from 'point' to 'extreme' intersects
+		// with the line segment from 'line[i]' to 'line[next]'
+		if (doIntersect(line[i], line[next], point, extreme)){
+			// If the point is colinear with line segment 'i-next',
+			// then check if it lies on segment. If it lies, return true
+			// otherwise false
+			if (orientation(line[i], point, line[next]) == 0) {
+				return onSegment(line[i], point, line[next]);
+			}
+
+			count++;
+		}
+		i = next;
+	} while (i != 0);
+
+	// Return true if count is odd, false otherwise
+	return count & 1;
+}
+
+/*
+ * Returns a number which represents the how many bodies of water the square is surrounded by
+ * 0 = not surrounded at all
+ * 1 = one corner of the square is surrounded by one body of water
+ * 2 = two corners are surrounded by one body of water
+ * OR two corners are each surrounded by their own body of water
+ * OR one corner is surrounded by two bodies of water
+ * 3 and up are similar
+ *
+ * All involved methods are adapted from http://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
+ */
+int isSurroundedByWater(vec2 topLeft, float width, float height){
+	int waterPointCounter = 0;
+	float xMin = topLeft.x;
+	float xMax = topLeft.x + width;
+	float yMin = topLeft.y;
+	float yMax = topLeft.y + height;
+	for (int i = 0; i < plottedPoints.size(); i++) {
+		// If line is water and is a closed curve
+		if (lineTypes[i] == WATER && plottedPoints[i][0] == plottedPoints[i][plottedPoints[i].size() - 1]) {
+			if (isInside(plottedPoints[i], vec2(xMin, yMin))) {
+				waterPointCounter++;
+			}
+			if (isInside(plottedPoints[i], vec2(xMax, yMin))) {
+				waterPointCounter++;
+			}
+			if (isInside(plottedPoints[i], vec2(xMin, yMax))) {
+				waterPointCounter++;
+			}
+			if (isInside(plottedPoints[i], vec2(xMax, yMax))) {
+				waterPointCounter++;
+			}
+		}
+	}
+	return waterPointCounter;
+}
+
+/*
+ * Returns the number of water points inside the given square
+ */
+int containsWaterBorders(vec2 topLeft, float width, float height) {
+	int waterPointCounter = 0;
+	float xMin = topLeft.x;
+	float xMax = topLeft.x + width;
+	float yMin = topLeft.y;
+	float yMax = topLeft.y + height;
+	for (int i = 0; i < plottedPoints.size(); i++) {
+		if (lineTypes[i] == WATER) {
+			for (int j = 0; j < plottedPoints[i].size(); j++) {
+				float x = plottedPoints[i][j].x;
+				float y = plottedPoints[i][j].y;
+				if ((x >= xMin && x <= xMax) && (y >= yMin && y <= yMax)) {
+					waterPointCounter++;
+				}
+			}
+		}
+	}
+	return waterPointCounter;
+}
+
+/*
+* Returns the number of ground points inside the given square
+*/
+int containsGroundBorders(vec2 topLeft, float width, float height) {
+	int groundPointCounter = 0;
+	float xMin = topLeft.x;
+	float xMax = topLeft.x + width;
+	float yMin = topLeft.y;
+	float yMax = topLeft.y + height;
+	for (int i = 0; i < plottedPoints.size(); i++) {
+		if (lineTypes[i] == GROUND) {
+			for (int j = 0; j < plottedPoints[i].size(); j++) {
+				float x = plottedPoints[i][j].x;
+				float y = plottedPoints[i][j].y;
+				if ((x >= xMin && x <= xMax) && (y >= yMin && y <= yMax)) {
+					groundPointCounter++;
+				}
+			}
+		}
+	}
+	return groundPointCounter;
+}
+
 /*
 * Finds delta for the given u using knots[lineNum]
 */
