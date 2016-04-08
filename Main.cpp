@@ -6,6 +6,7 @@
 #include <stdlib.h>  
 #include <vector>
 #include <cmath>
+#include <functional>
 
 #include "Renderer.h"
 #include "camera.h"
@@ -51,7 +52,7 @@ vector<vec3> terrainNormals;
 vector<vec2> terrainUVs;
 vector<unsigned int> terrainIndices;
 
-unsigned int OCTAVES = 6;
+unsigned int OCTAVES = 2;
 float PERSISTENCE = 0.3f;
 
 PerlinNoise noise(OCTAVES, PERSISTENCE);
@@ -776,11 +777,30 @@ void init()
 
 }
 
+class multiplyNumbers : public binary_function<float, float, float>
+{
+public:
+	float operator()(float x, float y) const
+	{
+		return x*y;
+	}
+};
+
+void applyToList(vector<float> list, float(*f)(float))
+{
+	for (unsigned int i = 0; i < list.size(); i++)
+	{
+		list[i] = f(list[i]);
+	}
+}
+
 int main() {
 	window = initializeWindow();
 	if (window == NULL) {
 		return -1;
 	}
+
+	vector<float> list;
 
 	r = Renderer(window);
 

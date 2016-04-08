@@ -15,7 +15,7 @@
 
 using namespace std;
 
-const int range = 5;
+const int range = 3;
 
 class Octave
 {
@@ -32,6 +32,8 @@ public:
 
 	Octave(int _freq, float _persistence);
 
+	Octave(int _freq, float _persistence, int _range);
+
 	float getValueAt(int x, int y);
 
 	float getValueAt(float x, float y);
@@ -45,6 +47,8 @@ public:
 	PerlinNoise();
 
 	PerlinNoise(int _maxFreq, float _persistence);
+
+	PerlinNoise(int _maxFreq, float _persistence, int _range);
 
 	float get(float x, float y);
 

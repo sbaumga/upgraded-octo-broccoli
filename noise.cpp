@@ -31,6 +31,21 @@ Octave::Octave(int _freq, float _persistence):
     }
 }
 
+Octave::Octave(int _freq, float _persistence, int _range) :
+freq(_freq), persistence(_persistence),
+dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
+{
+
+	for (int i = 0; i<dimension; i++)
+	{
+		for (int j = 0; j<dimension; j++)
+		{
+			float randomValue = ((float)rand() / RAND_MAX);
+			noise.push_back(randomValue*amplitude);
+		}
+	}
+}
+
 float Octave::getValueAt(int x, int y)
 {
     x = max(min(x, dimension-1), 0);
@@ -77,6 +92,16 @@ PerlinNoise::PerlinNoise(int _maxFreq, float _persistence)
     }
 }
 
+PerlinNoise::PerlinNoise(int _maxFreq, float _persistence, int _range)
+{
+	srand(time(0));
+
+	for (int i = 0; i<_maxFreq; i++)
+	{
+		octaves.push_back(Octave(i, _persistence, _range));
+	}
+}
+
 float PerlinNoise::get(float x, float y)
 {
     float value = 0.0;
@@ -91,7 +116,7 @@ float PerlinNoise::get(float x, float y)
 
 glm::vec3 PerlinNoise::getNormal(float x, float y)
 {
-	float inc = 0.0001;
+	float inc = 0.0000001;
 
 	glm::vec3 base(0.f, get(x, y), 0.f);
 	glm::vec3 u(inc, get(x + inc, y), 0.f);
