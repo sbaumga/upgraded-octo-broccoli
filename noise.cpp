@@ -40,8 +40,11 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 	{
 		for (int j = 0; j<dimension; j++)
 		{
+			float factor = 1.f;
+			if (abs(i - dimension / 2)+abs(j - dimension / 2) > dimension/4)
+				factor = 0.f;
 			float randomValue = ((float)rand() / RAND_MAX);
-			noise.push_back(randomValue*amplitude);
+			noise.push_back(randomValue*amplitude*factor);
 		}
 	}
 }

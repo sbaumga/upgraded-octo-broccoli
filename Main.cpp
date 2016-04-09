@@ -27,10 +27,10 @@ enum
 };
 
 
-unsigned int OCTAVES = 4;
+unsigned int OCTAVES = 6;
 float PERSISTENCE = 0.3f;
 
-PerlinNoise noise(OCTAVES, PERSISTENCE);
+PerlinNoise noise(OCTAVES, PERSISTENCE, 8);
 
 GLFWwindow *window;
 int w, h;
@@ -69,6 +69,7 @@ float canvasHeight = 10.f;
 
 //Rendering
 Renderer r;
+bool wireframe = false;
 
 float xTrans, yTrans, zTrans = 0.0f;
 float scale = std::max(1.f/(canvasWidth*1.1f), 1.f/(canvasHeight*1.1f));
@@ -572,7 +573,7 @@ void createRandomizedPlane()
 {
 	cout << "Create new plane";
 
-	noise = PerlinNoise(OCTAVES, PERSISTENCE);
+	noise = PerlinNoise(OCTAVES, PERSISTENCE, 4);
 
 	//Initialize Plane
 	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
@@ -717,6 +718,21 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 		}
 		else if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS)) {
 			createRandomizedPlane();
+		}
+		else if ((key == GLFW_KEY_1) && (action == GLFW_PRESS)) {
+			if (wireframe)
+			{
+				wireframe = false;
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glDisable(GL_CULL_FACE);
+			}
+			else
+			{
+				wireframe = true;
+				glPolygonMode(GL_FRONT, GL_LINE);
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+			}
 		}
 	}
 	if (key == GLFW_KEY_I && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
