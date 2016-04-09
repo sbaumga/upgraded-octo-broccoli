@@ -807,9 +807,6 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 
 
 	vec2 diff = vec2((2 * x / w) - 1, (-2 * y / h) + 1) - lastPos;
-
-	printf("Mouse (%f, %f)\n", diff.x, diff.y);
-
 	lastPos = vec2((2 * x / w) - 1, (-2 * y / h) + 1);
 	
 	if (!renderTerrain) {
@@ -862,30 +859,12 @@ void init()
 
 }
 
-class multiplyNumbers : public binary_function<float, float, float>
-{
-public:
-	float operator()(float x, float y) const
-	{
-		return x*y;
-	}
-};
-
-void applyToList(vector<float> list, float(*f)(float))
-{
-	for (unsigned int i = 0; i < list.size(); i++)
-	{
-		list[i] = f(list[i]);
-	}
-}
 
 int main() {
 	window = initializeWindow();
 	if (window == NULL) {
 		return -1;
 	}
-
-	vector<float> list;
 
 	r = Renderer(window);
 
