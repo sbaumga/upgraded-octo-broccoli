@@ -16,12 +16,21 @@
 using namespace std;
 using namespace glm;
 
+const int PLANE_DIM_X = 50;
+const int PLANE_DIM_Z = 50;
+
 enum
 {
 	GROUND,
 	WATER,
 	TREES,
 };
+
+
+unsigned int OCTAVES = 1;
+float PERSISTENCE = 0.3f;
+
+PerlinNoise noise(OCTAVES, PERSISTENCE);
 
 GLFWwindow *window;
 int w, h;
@@ -52,10 +61,6 @@ vector<vec3> terrainNormals;
 vector<vec2> terrainUVs;
 vector<unsigned int> terrainIndices;
 
-unsigned int OCTAVES = 2;
-float PERSISTENCE = 0.3f;
-
-PerlinNoise noise(OCTAVES, PERSISTENCE);
 
 //Rendering
 Renderer r;
@@ -545,7 +550,7 @@ void createRandomizedPlane()
 	noise = PerlinNoise(OCTAVES, PERSISTENCE);
 
 	//Initialize Plane
-	generatePlane(50, 50, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
+	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
 
 	float scale = 1.f;
 
@@ -557,6 +562,25 @@ void createRandomizedPlane()
 
 		terrainPoints[i] = vec3(point.x, noise.get(uv.x, uv.y)*scale - scale*0.5, point.z);
 		terrainNormals[i] = noise.getNormal(uv.x, uv.y);
+	}
+
+	//Calculate normals
+	for (int i = 0; i < PLANE_DIM_Z; i++)
+	{
+		for (int j = 0; j < PLANE_DIM_X; j++)
+		{
+			int i0 = std::max(i - 1, 0);
+			int i1 = std::min(i + 1, PLANE_DIM_Z-1);
+
+			int j0 = std::max(j - 1, 0);
+			int j1 = std::min(j + 1, PLANE_DIM_X-1);
+
+			vec3 xTangent = terrainPoints[i*PLANE_DIM_X + j1] 
+				- terrainPoints[i*PLANE_DIM_X + j0];
+			vec3 zTangent = terrainPoints[i1*PLANE_DIM_X + j]
+				- terrainPoints[i0*PLANE_DIM_X + j1];
+			terrainNormals[i*PLANE_DIM_X + j] = cross(xTangent, zTangent);
+		}
 	}
 
 	r.loadModelBuffer(&terrainPoints, &terrainNormals, &terrainIndices);
