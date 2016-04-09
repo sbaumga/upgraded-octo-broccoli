@@ -30,6 +30,7 @@ enum
 
 unsigned int OCTAVES = 6;
 float PERSISTENCE = 0.3f;
+unsigned int RANGE = 40;
 
 PerlinNoise noise(OCTAVES, PERSISTENCE, 8);
 
@@ -42,6 +43,10 @@ vector < vector < vec2 > > controlPoints;
 vector < vec2 > points;
 vector < vector < double > > knots;
 vector < vector < vec2 > > plottedPoints;
+
+vector<vec2> mountainCenters;
+vector<float> mountainRadii;
+
 double uStep = 1000;
 int order = 4;
 bool drawing;
@@ -176,7 +181,7 @@ void getBoundingCirclesFromMountainLines(vector<vec2>* centers, vector<float>* r
 		{
 			vec2 leftMost(1000.f, 0.f);
 			vec2 rightMost(-1000.f, 0.f);
-			vec2 topMost(-1000.f, 0.f);
+			vec2 topMost(0.f, -1000.f);
 
 			for (unsigned int j = 0; j < controlPoints[i].size(); j++)
 			{
@@ -357,7 +362,8 @@ void recalculateKnots(int lineNum) {
 }
 
 void renderDrawing() {
-	
+	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glBegin(GL_QUADS);
 		//Shadow
@@ -450,6 +456,27 @@ void renderDrawing() {
 		}
 	}
 
+	glEnd();
+
+	//Debugging
+	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
+
+	glPointSize(2.f);
+	glBegin(GL_POINTS);
+	glColor3f(1.f, 0.f, 0.f);
+	for (unsigned int i = 0; i < mountainCenters.size(); i++)
+	{
+		glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
+	}
+	glEnd();
+
+	glBegin(GL_LINES);
+	glColor3f(0.f, 1.f, 1.f);
+	for (unsigned int i = 0; i < mountainCenters.size(); i++)
+	{
+		glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
+		glVertex2f(mountainCenters[i].x, mountainCenters[i].y + mountainRadii[i]);
+	}
 	glEnd();
 }
 
@@ -611,12 +638,14 @@ void createRandomizedPlane()
 {
 	cout << "Create new plane";
 
-	noise = PerlinNoise(OCTAVES, PERSISTENCE, 10);
+	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
+
+	noise = PerlinNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
 
 	//Initialize Plane
 	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, canvasHeight, canvasWidth, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
 
-	float scale = 1.f;
+	float scale = 0.3f;
 
 	//Add perlin noise to plane
 	for (unsigned int i = 0; i < terrainPoints.size(); i++)
@@ -729,6 +758,7 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 		
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
+			createRandomizedPlane();
 			if (drawing) {
 				finishLine();
 			}

@@ -55,9 +55,9 @@ Octave::Octave(int _freq, float _persistence, int _range, float xWidth, float yW
 freq(_freq), persistence(_persistence),
 dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 {
-	float radius = ((float)(dimension - 1)) / std::max(xWidth, yWidth);
-	float width = ((float)(dimension - 1)) / xWidth;
-	float height = ((float)(dimension - 1)) / yWidth;
+	float radius = std::max(xWidth, yWidth) / ((float)(dimension - 1));
+	float width = xWidth/ ((float)(dimension - 1));
+	float height = yWidth/ ((float)(dimension - 1));
 	float xOffset = -xWidth*0.5f;
 	float yOffset = -yWidth*0.5f;
 
@@ -71,7 +71,7 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 
 			if (withinRadius(center, radius, centers, radii))
 			{
-				float randomValue = ((float)rand() / RAND_MAX);
+				float randomValue = ((float)rand() / RAND_MAX)*2.f - 0.5f;
 				noise.push_back(randomValue*amplitude);
 			}
 			else
