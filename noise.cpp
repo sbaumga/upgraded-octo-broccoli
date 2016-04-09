@@ -25,7 +25,7 @@ Octave::Octave(int _freq, float _persistence):
     {
         for(int j=0; j<dimension; j++)
         {
-            float randomValue = ((float)rand()/RAND_MAX);
+            float randomValue = ((float)rand()/RAND_MAX)*2.f- 0.5f;
             noise.push_back(randomValue*amplitude);
         }
     }
@@ -40,22 +40,66 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 	{
 		for (int j = 0; j<dimension; j++)
 		{
-			float factor = 1.f;
-			if (abs(i - dimension / 2)+abs(j - dimension / 2) > dimension/4)
-				factor = 0.f;
-			float randomValue = ((float)rand() / RAND_MAX);
-			noise.push_back(randomValue*amplitude*factor);
+			if (abs(i - dimension / 2) + abs(j - dimension / 2) <= dimension / 4)
+			{
+				float randomValue = ((float)rand() / RAND_MAX)*2.f - 0.5f;
+				noise.push_back(randomValue*amplitude);
+			}
+			else
+				noise.push_back(0.f);
 		}
 	}
 }
 
+Octave::Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii):
+freq(_freq), persistence(_persistence),
+dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
+{
+	float radius = ((float)(dimension - 1)) / std::max(xWidth, yWidth);
+	float width = ((float)(dimension - 1)) / xWidth;
+	float height = ((float)(dimension - 1)) / yWidth;
+	float xOffset = -xWidth*0.5f;
+	float yOffset = -yWidth*0.5f;
+
+	for (int i = 0; i<dimension; i++)
+	{
+		for (int j = 0; j<dimension; j++)
+		{
+			vec2 center(
+				xOffset + width*(float)j,
+				yOffset + height*(float)i);
+
+			if (withinRadius(center, radius, centers, radii))
+			{
+				float randomValue = ((float)rand() / RAND_MAX);
+				noise.push_back(randomValue*amplitude);
+			}
+			else
+				noise.push_back(0.f);
+		}
+	}
+}
+
+bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii)
+{
+
+	for (unsigned int i = 0; i < centers.size(); i++)
+	{
+		vec2 diff = center - centers[i];
+		if (dot(diff, diff) < (radius + radii[i])*(radius + radii[i]))
+			return true;
+	}
+
+	return false;
+}
+
 float Octave::getValueAt(int x, int y)
 {
-    x = max(min(x, dimension-1), 0);
-    y = max(min(y, dimension-1), 0);
+    x = std::max(std::min(x, dimension-1), 0);
+    y = std::max(std::min(y, dimension-1), 0);
 
-    if(noise[x*dimension + y] < 0.0)
-        printf("Error = %f\n", noise[x*dimension+y]);
+    //if(noise[x*dimension + y] < 0.0)
+      //  printf("Error = %f\n", noise[x*dimension+y]);
 
     return noise[x*dimension + y];
 }
@@ -102,6 +146,16 @@ PerlinNoise::PerlinNoise(int _maxFreq, float _persistence, int _range)
 	for (int i = 0; i<_maxFreq; i++)
 	{
 		octaves.push_back(Octave(i, _persistence, _range));
+	}
+}
+
+PerlinNoise::PerlinNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii)
+{
+	srand(time(0));
+
+	for (int i = 0; i<_maxFreq; i++)
+	{
+		octaves.push_back(Octave(i, _persistence, _range, xWidth, yWidth, centers, radii));
 	}
 }
 

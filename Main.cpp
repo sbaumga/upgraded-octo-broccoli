@@ -16,8 +16,8 @@
 using namespace std;
 using namespace glm;
 
-const int PLANE_DIM_X = 50;
-const int PLANE_DIM_Z = 50;
+const int PLANE_DIM_X = 100;
+const int PLANE_DIM_Z = 100;
 
 enum
 {
@@ -163,6 +163,40 @@ bool isInside(vector<vec2> line, vec2 point) {
 
 	// Return true if count is odd, false otherwise
 	return count & 1;
+}
+
+void getBoundingCirclesFromMountainLines(vector<vec2>* centers, vector<float>* radii)
+{
+	centers->clear();
+	radii->clear();
+
+	for (unsigned int i = 0; i < controlPoints.size(); i++)
+	{
+		if (lineTypes[i] == MOUNTAIN)
+		{
+			vec2 leftMost(1000.f, 0.f);
+			vec2 rightMost(-1000.f, 0.f);
+			vec2 topMost(-1000.f, 0.f);
+
+			for (unsigned int j = 0; j < controlPoints[i].size(); j++)
+			{
+				//Find top point, bottom left point, and bottom right point
+				if (controlPoints[i][j].x < leftMost.x)
+					leftMost = controlPoints[i][j];
+				if (controlPoints[i][j].x > rightMost.x)
+					rightMost = controlPoints[i][j];
+				if (controlPoints[i][j].y > topMost.y)
+					topMost = controlPoints[i][j];
+			}
+
+			vec2 center = (leftMost + rightMost + topMost) / 3.f;
+			float radius = length(leftMost - center);
+
+			centers->push_back(center);
+			radii->push_back(radius);
+
+		}
+	}
 }
 
 /*
@@ -577,10 +611,10 @@ void createRandomizedPlane()
 {
 	cout << "Create new plane";
 
-	noise = PerlinNoise(OCTAVES, PERSISTENCE, 4);
+	noise = PerlinNoise(OCTAVES, PERSISTENCE, 10);
 
 	//Initialize Plane
-	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, 2.f, 2.f, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
+	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, canvasHeight, canvasWidth, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
 
 	float scale = 1.f;
 
@@ -838,8 +872,19 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 }
 
 void scroll(GLFWwindow *sender, double x, double y) {
-	scale = std::max(scale + 0.1f * y, 0.1);
-	cout << scale << "\n";
+	
+	if (!renderTerrain)
+	{
+		scale = std::max(scale + 0.1f * y, 0.1);
+		cout << scale << "\n";
+	}
+	else
+	{
+		if (y > 0)
+			lookat.zoom(1/1.1f);
+		else
+			lookat.zoom(1.1f);
+	}
 }
 
 

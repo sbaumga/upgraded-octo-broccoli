@@ -14,6 +14,7 @@
 #define M_PI 3.14159265359
 
 using namespace std;
+using namespace glm;
 
 const int range = 3;
 
@@ -34,6 +35,8 @@ public:
 
 	Octave(int _freq, float _persistence, int _range);
 
+	Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);
+
 	float getValueAt(int x, int y);
 
 	float getValueAt(float x, float y);
@@ -50,10 +53,13 @@ public:
 
 	PerlinNoise(int _maxFreq, float _persistence, int _range);
 
+	PerlinNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);		//Constructor for circle detection
+
 	float get(float x, float y);
 
 	glm::vec3 getNormal(float x, float y);
 };
 
+bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii);
 
 #endif

@@ -42,6 +42,8 @@ Renderer::Renderer(GLFWwindow* window) :window(window), light(normalize(vec3(1.f
 	setupVAOs();
 	loadShaders();
 
+	glfwSetWindowSizeCallback(window, resizeEvent);
+
 	GLint vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	WIN_WIDTH = vp[2];
