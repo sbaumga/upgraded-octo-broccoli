@@ -27,7 +27,7 @@ enum
 };
 
 
-unsigned int OCTAVES = 1;
+unsigned int OCTAVES = 4;
 float PERSISTENCE = 0.3f;
 
 PerlinNoise noise(OCTAVES, PERSISTENCE);
@@ -55,18 +55,23 @@ Camera lookat;
 vec2 lastPos;		//Last mouse position
 bool rotatingCamera = false;
 
+//2D mouse manipulation
+bool panningCamera = false;
+
 //Terrain
 vector<vec3> terrainPoints;
 vector<vec3> terrainNormals;
 vector<vec2> terrainUVs;
 vector<unsigned int> terrainIndices;
 
+float canvasWidth = 10.f;
+float canvasHeight = 10.f;
 
 //Rendering
 Renderer r;
 
 float xTrans, yTrans, zTrans = 0.0f;
-float scale = 1.0f;
+float scale = std::max(1.f/(canvasWidth*1.1f), 1.f/(canvasHeight*1.1f));
 
 // Define Infinite (Using INT_MAX caused overflow problems)
 #define INF 10000
@@ -316,6 +321,24 @@ void recalculateKnots(int lineNum) {
 }
 
 void renderDrawing() {
+	
+	
+	glBegin(GL_QUADS);
+		//Shadow
+		glColor3f(0.f, 0.f, 0.f);
+		glVertex3f(-canvasWidth*0.55, -canvasHeight*0.55, -1.f);
+		glVertex3f(canvasWidth*0.45, -canvasHeight*0.55, -1.f);
+		glVertex3f(canvasWidth*0.45, canvasHeight*0.45, -1.f);
+		glVertex3f(-canvasWidth*0.55, canvasHeight*0.45, -1.f);
+
+		//Canvas
+		glColor3f(1.f, 1.f, 1.f);
+		glVertex3f(-canvasWidth*0.5, -canvasHeight*0.5, -0.99f);
+		glVertex3f(canvasWidth*0.5, -canvasHeight*0.5, -0.99f);
+		glVertex3f(canvasWidth*0.5, canvasHeight*0.5, -0.99f);
+		glVertex3f(-canvasWidth*0.5, canvasHeight*0.5, -0.99f);
+	glEnd();
+	
 	glBegin(GL_LINES);
 	
 
@@ -480,6 +503,8 @@ void render3D() {
 			renderTrees(plottedPoints[i]);
 		}
 	}*/
+	glClearColor(1.f, 1.f, 1.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	r.updateTransform();
 	r.render3DView();
@@ -714,6 +739,7 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 	}
 }
 
+
 void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 	if (!renderTerrain) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
@@ -724,6 +750,10 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 			drawing = false;
 
 			finishLine();
+		}
+		else if (button == GLFW_MOUSE_BUTTON_MIDDLE && ((action == GLFW_PRESS) || (action == GLFW_RELEASE)))
+		{
+			panningCamera = !panningCamera;
 		}
 	}
 	else
@@ -749,9 +779,12 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	mouseX = mouseX / scale;
 	mouseY = mouseY / scale;
 
-	vec2 diff = vec2(mouseX, mouseY) - lastPos;
 
-	lastPos = vec2(mouseX, mouseY);
+	vec2 diff = vec2((2 * x / w) - 1, (-2 * y / h) + 1) - lastPos;
+
+	printf("Mouse (%f, %f)\n", diff.x, diff.y);
+
+	lastPos = vec2((2 * x / w) - 1, (-2 * y / h) + 1);
 	
 	if (!renderTerrain) {
 		if (drawing) {
@@ -766,6 +799,11 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 				points.push_back(vec2(mouseX, mouseY));
 			}
 		}
+		else if (panningCamera)
+		{
+			yTrans += diff.y;
+			xTrans += diff.x;
+		}
 	}
 	else
 	{
@@ -777,10 +815,7 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 }
 
 void scroll(GLFWwindow *sender, double x, double y) {
-	scale = scale + 0.1f * y;
-	if (scale <= 0.0f) {
-		scale = 0.1f;
-	}
+	scale = std::max(scale + 0.1f * y, 0.1);
 	cout << scale << "\n";
 }
 
@@ -794,7 +829,7 @@ void init()
 	r.projection = perspectiveMatrix(0.1f, 10.f, 80.f);
 	r.loadCamera(&lookat);
 
-	glClearColor(1.f, 1.f, 1.f, 1.f);
+	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
 	createRandomizedPlane();
 
