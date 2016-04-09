@@ -24,6 +24,7 @@ enum
 	GROUND,
 	WATER,
 	TREES,
+	MOUNTAIN,
 };
 
 
@@ -357,6 +358,9 @@ void renderDrawing() {
 			else if (type == TREES) {
 				glColor3f(0.0, 1.0, 0.0);
 			}
+			else if (type == MOUNTAIN) {
+				glColor3f(0.5f, 0.5f, 0.5f);
+			}
 
 			for (int j = 0; j < line.size() - 1; j++) {
 				glVertex2d(line[j].x, line[j].y);
@@ -681,6 +685,12 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				lineTypes.back() = drawType;
 			}
 			*/
+		}
+		else if (key == GLFW_KEY_M && action == GLFW_PRESS) {
+			drawType = MOUNTAIN;
+			if (drawing) {
+				lineTypes.back() = drawType;
+			}
 		}
 		
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
