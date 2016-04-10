@@ -631,26 +631,28 @@ void render() {
 }
 
 void finishLine() {
-	if (points.size() > 0) {
-		if (abs(points.front().x - mouseX) < selectDistance && abs(points.front().y - mouseY) < selectDistance) {
-			if (points.back().x != points.front().x && points.back().y != points.front().y) {
-				points.push_back(vec2(points.front().x, points.front().y));
+	if (points.size() >= order) {
+		if (points.size() > 0) {
+			if (abs(points.front().x - mouseX) < selectDistance && abs(points.front().y - mouseY) < selectDistance) {
+				if (points.back().x != points.front().x && points.back().y != points.front().y) {
+					points.push_back(vec2(points.front().x, points.front().y));
+				}
 			}
 		}
-	}
 
-	controlPoints.push_back(points);
+		controlPoints.push_back(points);
 
-	vector <double> temp;
-	knots.push_back(temp);
-	recalculateKnots(controlPoints.size() - 1);
-	vector <vec2> temp2;
-	plottedPoints.push_back(temp2);
-	for (double u = 0; u <= 1; u += 1.0 / uStep) {
-		calculateBSpline(u, controlPoints.size() - 1);
+		vector <double> temp;
+		knots.push_back(temp);
+		recalculateKnots(controlPoints.size() - 1);
+		vector <vec2> temp2;
+		plottedPoints.push_back(temp2);
+		for (double u = 0; u <= 1; u += 1.0 / uStep) {
+			calculateBSpline(u, controlPoints.size() - 1);
+		}
+		calculateBSpline(0.99999999999, controlPoints.size() - 1);
+		points.clear();
 	}
-	calculateBSpline(0.99999999999, controlPoints.size() - 1);
-	points.clear();
 }
 
 
