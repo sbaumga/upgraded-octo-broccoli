@@ -47,11 +47,15 @@ vector < vector < vec2 > > plottedPoints;
 vector<vec2> mountainCenters;
 vector<float> mountainRadii;
 
-double uStep = 1000;
+double uStep = 50;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
 double selectDistance = 0.05;
+
+bool erasing = false;
+float erasingRadius = 0.05f;
+
 float rotateX, rotateZ = 0;
 
 bool renderTerrain = false;
@@ -383,7 +387,7 @@ void renderDrawing() {
 	
 	glBegin(GL_LINES);
 	
-
+	// Draw finished lines
 	if (plottedPoints.size() >= 1) {
 		for (int i = 0; i < plottedPoints.size(); i++) {
 			vector < vec2 > line = plottedPoints[i];
@@ -427,6 +431,9 @@ void renderDrawing() {
 			else if (drawType == TREES) {
 				glColor3f(0.0, 1.0, 0.0);
 			}
+			else if (drawType == MOUNTAIN) {
+				glColor3f(0.5f, 0.5f, 0.5f);
+			}
 			for (double j = 0; j < 2 * M_PI; j += M_PI / 25) {
 				double pointX = sin(j) * 0.05 + points.front().x;
 				double pointY = cos(j) * 0.05 + points.front().y;
@@ -437,7 +444,7 @@ void renderDrawing() {
 		}
 	}
 
-
+	// Draw current line
 	glBegin(GL_LINES);
 	if (points.size() > 1) {
 		if (drawType == GROUND) {
@@ -450,6 +457,9 @@ void renderDrawing() {
 		else if (drawType == TREES) {
 			glColor3f(0.0, 1.0, 0.0);
 		}
+		else if (drawType == MOUNTAIN) {
+			glColor3f(0.5f, 0.5f, 0.5f);
+		}
 		for (int i = 0; i < points.size() - 1; i++) {
 			glVertex2d(points[i].x, points[i].y);
 			glVertex2d(points[i + 1].x, points[i + 1].y);
@@ -457,6 +467,38 @@ void renderDrawing() {
 	}
 
 	glEnd();
+
+
+	if (erasing) {
+		// Draw erasing circle
+		glBegin(GL_LINE_STRIP);
+
+		if (drawType == GROUND) {
+			// brown
+			glColor3f(0.4, 0.2, 0.0);
+		}
+		else if (drawType == WATER) {
+			glColor3f(0.0, 0.0, 1.0);
+		}
+		else if (drawType == TREES) {
+			glColor3f(0.0, 1.0, 0.0);
+		}
+		else if (drawType == MOUNTAIN) {
+			glColor3f(0.5f, 0.5f, 0.5f);
+		}
+
+		for (double j = 0; j < 2 * M_PI; j += M_PI / 25) {
+			double pointX = sin(j) * (erasingRadius / scale) + mouseX;
+			double pointY = cos(j) * (erasingRadius / scale) + mouseY;
+			glVertex2d(pointX, pointY);
+		}
+
+		double pointX = sin(0) * (erasingRadius / scale) + mouseX;
+		double pointY = cos(0) * (erasingRadius / scale) + mouseY;
+		glVertex2d(pointX, pointY);
+
+		glEnd();
+	}
 
 	//Debugging
 	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
@@ -594,6 +636,133 @@ void render3D() {
 
 	r.updateTransform();
 	r.render3DView();
+}
+
+void erase() {
+	// These lines will be added to the plottedPoints vector after all have been considered
+	vector < vector <vec2> > linesAfterEreasing;
+	// These are the indices of of the lines that the erasing effects
+	// The lines corresponding to these indices will be erased after all have been considered
+	vector<int> lineIndices;
+	for (int lineNum = 0; lineNum < plottedPoints.size(); lineNum++) {
+		
+		// Only erases lines of the correct type
+		if (lineTypes[lineNum] == drawType) {
+			bool inLineIndices = false;
+			bool startPointInside = false;
+			// Tracks if the intersection will be moving out of or into the circle
+			bool inside = false;
+			
+			// These are the indices of the points just before the line intersects with the circle
+			vector<int> pointsBeforeIntersections;
+
+			for (int j = 0; j < plottedPoints[lineNum].size(); j++) {
+				// Uses parametric equation of circle (centreX^2 + centreY^2 = r^2)
+				// if x^2 + y^2 <= 1 the point is in or on the circle
+				float x = plottedPoints[lineNum][j].x;
+				float y = plottedPoints[lineNum][j].y;
+				if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= erasingRadius / scale) {
+					// If last point was outside, probably intersection
+					if (!inside) {
+						if (!inLineIndices) {
+							// Push back line num, as this line will be affected by the erasing
+							inLineIndices = true;
+							lineIndices.push_back(lineNum);
+						}
+
+						// Now inside the circle
+						inside = true;
+						if (j == 0) {
+							// If this is the first point, then no intersection has taken place
+							// But this will mean that the points going from odd to even intersection numbers
+							// will be kept, instead of erased like normal
+							startPointInside = true;
+						}
+						else {
+							// Pushing point j - 1 as we want to keep track of the points outside of the circle
+							// and j is outside, but j - 1 was not
+							pointsBeforeIntersections.push_back(j - 1);
+						}
+					}
+				}
+				// Otherwise point outside of circle
+				else {
+					// If last point was inside, intersection
+					if (inside) {
+						// Now outside
+						inside = false;
+
+						// Pushing back j because we want points outside of the circle and this time j is outside
+						pointsBeforeIntersections.push_back(j);
+					}
+				}
+			}
+			// Whole line has been checked now
+
+			// Determines wether to starting storing points from the first point of plottedPoints
+			// or to start from the first intersection point
+			int startingIntersection;
+			if (!startPointInside) {
+				// Normal behaivour
+				// Start from firstPoint in plottedPoints
+				// Store points from even intersections to odd
+				startingIntersection = -1;
+			}
+			else {
+				// Start from first intersection
+				// Store points from odd intersections to even
+				startingIntersection = 0;
+			}
+
+			
+
+			for (int i = startingIntersection; i < ((int)pointsBeforeIntersections.size()); i = i + 2) {
+				vector<vec2> line;
+				
+				// Indicates the starting index of plottedPoints
+				int startPoint;
+				if (i == -1) {
+					startPoint = 0;
+				}
+				else {
+					startPoint = pointsBeforeIntersections[i];
+				}
+
+				// Indicates the ending index of plottedPoints
+				int endPoint;
+				if (i == pointsBeforeIntersections.size() - 1) {
+					// If the line does not end in the erasing zone
+					endPoint = plottedPoints[lineNum].size() - 1;
+				}
+				else {
+					endPoint = pointsBeforeIntersections[i + 1];
+				}
+				
+				// Loops through and saves the correct points
+				for (int j = startPoint; j <= endPoint; j++) {
+					line.push_back(plottedPoints[lineNum][j]);
+				}
+				
+				// All points for these intersections now added to line
+				linesAfterEreasing.push_back(line);
+			}
+		}
+		// End of draw type check
+	}
+	// All lines have now been checked
+
+	// Removing now incorrect lines
+	// Removing from back to front so as not to affect placement of other lines to be dealt with
+	for (int i = lineIndices.size() - 1; i >= 0; i--) {
+		plottedPoints.erase(plottedPoints.begin() + lineIndices[i]);
+		lineTypes.erase(lineTypes.begin() + lineIndices[i]);
+	}
+
+	// Adding new lines
+	for (int i = 0; i < linesAfterEreasing.size(); i++) {
+		plottedPoints.push_back(linesAfterEreasing[i]);
+		lineTypes.push_back(drawType);
+	}
 }
 
 /*
@@ -778,6 +947,12 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				lineTypes.back() = drawType;
 			}
 		}
+
+		else if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+			if (!drawing) {
+				erasing = !erasing;
+			}
+		}
 		
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
@@ -898,15 +1073,20 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	
 	if (!renderTerrain) {
 		if (drawing) {
-			if (points.size() > 0) {
-				double distanceX = abs(mouseX - points.back().x);
-				double distanceY = abs(mouseY - points.back().y);
-				if (distanceX >= 0.01 || distanceY >= 0.01) {
+			if (!erasing) {
+				if (points.size() > 0) {
+					double distanceX = abs(mouseX - points.back().x);
+					double distanceY = abs(mouseY - points.back().y);
+					if (distanceX >= 0.01 || distanceY >= 0.01) {
+						points.push_back(vec2(mouseX, mouseY));
+					}
+				}
+				else {
 					points.push_back(vec2(mouseX, mouseY));
 				}
 			}
 			else {
-				points.push_back(vec2(mouseX, mouseY));
+				erase();
 			}
 		}
 		else if (panningCamera)
