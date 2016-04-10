@@ -28,7 +28,7 @@ enum
 };
 
 
-unsigned int OCTAVES = 6;
+unsigned int OCTAVES = 4;
 float PERSISTENCE = 0.3f;
 unsigned int RANGE = 40;
 
@@ -478,6 +478,26 @@ void renderDrawing() {
 		glVertex2f(mountainCenters[i].x, mountainCenters[i].y + mountainRadii[i]);
 	}
 	glEnd();
+
+	//Range
+	float stepSize = canvasHeight / (float)(RANGE - 1);
+	float offset = -canvasHeight*0.5;
+	glColor3f(0.8f, 0.8f, 0.8f);
+	glBegin(GL_LINES);
+	//Rows
+	for (unsigned int i = 0; i < RANGE; i++)
+	{
+		glVertex3f(offset, offset + stepSize*(float)i, -0.9f);
+		glVertex3f(-offset, offset + stepSize*(float)i, -0.9f);
+	}
+	//Columns
+	for (unsigned int i = 0; i < RANGE; i++)
+	{
+		glVertex3f(offset + stepSize*(float)i, offset, -0.9f);
+		glVertex3f(offset + stepSize*(float)i, -offset, -0.9f);
+	}
+	glEnd();
+	
 }
 
 void renderGround(vector<vec2> points) {
@@ -640,12 +660,13 @@ void createRandomizedPlane()
 
 	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
 
-	noise = PerlinNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
+	//noise = PerlinNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
+	noise.generateMountainNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
 
 	//Initialize Plane
 	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, canvasHeight, canvasWidth, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
 
-	float scale = 0.3f;
+	float scale = 1.f*std::min(canvasHeight, canvasHeight) / (float)RANGE;
 
 	//Add perlin noise to plane
 	for (unsigned int i = 0; i < terrainPoints.size(); i++)
@@ -653,7 +674,7 @@ void createRandomizedPlane()
 		vec2 uv = terrainUVs[i];
 		vec3 point = terrainPoints[i];
 
-		terrainPoints[i] = vec3(point.x, noise.get(uv.x, uv.y)*scale - scale*0.5, point.z);
+		terrainPoints[i] = vec3(point.x, noise.get(-uv.x + 1.f, uv.y)*scale - scale*0.5, point.z);
 		terrainNormals[i] = noise.getNormal(uv.x, uv.y);
 	}
 
@@ -758,7 +779,7 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 		
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
-			createRandomizedPlane();
+			//createRandomizedPlane();
 			if (drawing) {
 				finishLine();
 			}
@@ -924,7 +945,7 @@ void init()
 	//Setup renderer
 	lookat = Camera(vec3(0.f, 0.f, -1.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 2.f), MODELVIEWER_CAMERA);
 
-	r.projection = perspectiveMatrix(0.1f, 10.f, 80.f);
+	r.projection = perspectiveMatrix(0.1f, 30.f, 80.f);
 	r.loadCamera(&lookat);
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);

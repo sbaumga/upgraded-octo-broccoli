@@ -7,7 +7,7 @@
 #include <cstdio>
 
 const float minZoom = 0.05f;
-const float maxZoom = 5.f;
+const float maxZoom = 20.f;
 
 const float maxY = 0.8f;		//Determines maximum y value of camera direction (To prevent bugs associated with looking straight up)
 const float minY = -0.5f;

@@ -55,11 +55,14 @@ public:
 
 	PerlinNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);		//Constructor for circle detection
 
+	void generateMountainNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);
+
 	float get(float x, float y);
 
 	glm::vec3 getNormal(float x, float y);
 };
 
 bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii);
+float areaCovered(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii);
 
 #endif

@@ -51,6 +51,7 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 	}
 }
 
+//Perlin noise constructor for mountain
 Octave::Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii):
 freq(_freq), persistence(_persistence),
 dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
@@ -69,16 +70,23 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 				xOffset + width*(float)j,
 				yOffset + height*(float)i);
 
-			if (withinRadius(center, radius, centers, radii))
+			/*if (withinRadius(center, radius, centers, radii))
 			{
 				float randomValue = ((float)rand() / RAND_MAX)*2.f - 0.5f;
 				noise.push_back(randomValue*amplitude);
 			}
 			else
-				noise.push_back(0.f);
+				noise.push_back(0.f);*/
+
+			float coverage = areaCovered(center, radius, centers, radii);
+
+			float randomValue = ((float)rand() / RAND_MAX)*2.f - 0.5f;
+			noise.push_back(randomValue*amplitude*coverage);
 		}
 	}
 }
+
+
 
 bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii)
 {
@@ -91,6 +99,31 @@ bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const 
 	}
 
 	return false;
+}
+
+float clamp(float x, float low, float high)
+{
+	return std::max(std::min(x, high), low);
+}
+
+//Will return an approximation of the covered area
+//	Spheres are modelled as intersecting squares lying on the same axis. 
+//	The diagonal of the square is equal to the diameter
+float areaCovered(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii)
+{
+	float totalArea = 2.f*radius*radius;		//Approximation given by square with 2*radius as the diagonal edge
+	float intersectedArea = 0.f;
+
+	for (unsigned int i = 0; i < centers.size(); i++)
+	{
+		vec2 diff = center - centers[i];
+		float d = length(diff);
+		float diagonal = clamp(radii[i] + radius - d, 0.f, 2.f*radius);
+
+		intersectedArea += diagonal*diagonal*0.5f;
+	}
+
+	return std::min(intersectedArea / totalArea, 1.f);
 }
 
 float Octave::getValueAt(int x, int y)
@@ -152,6 +185,18 @@ PerlinNoise::PerlinNoise(int _maxFreq, float _persistence, int _range)
 PerlinNoise::PerlinNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii)
 {
 	srand(time(0));
+
+	for (int i = 0; i<_maxFreq; i++)
+	{
+		octaves.push_back(Octave(i, _persistence, _range, xWidth, yWidth, centers, radii));
+	}
+}
+
+void PerlinNoise::generateMountainNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii)
+{
+	srand(time(0));
+	octaves.clear();
+	octaves.clear();
 
 	for (int i = 0; i<_maxFreq; i++)
 	{
