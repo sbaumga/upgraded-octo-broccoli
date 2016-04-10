@@ -47,7 +47,7 @@ vector < vector < vec2 > > plottedPoints;
 vector<vec2> mountainCenters;
 vector<float> mountainRadii;
 
-double uStep = 50;
+double uStep = 1000;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
@@ -406,7 +406,7 @@ void renderDrawing() {
 				glColor3f(0.5f, 0.5f, 0.5f);
 			}
 
-			for (int j = 0; j < line.size() - 1; j++) {
+			for (int j = 0; j < (int)(line.size() - 1); j++) {
 				glVertex2d(line[j].x, line[j].y);
 				glVertex2d(line[j + 1].x, line[j + 1].y);
 			}
@@ -661,7 +661,7 @@ void erase() {
 				// if x^2 + y^2 <= 1 the point is in or on the circle
 				float x = plottedPoints[lineNum][j].x;
 				float y = plottedPoints[lineNum][j].y;
-				if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= erasingRadius / scale) {
+				if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= (erasingRadius / scale) * (erasingRadius / scale)) {
 					// If last point was outside, probably intersection
 					if (!inside) {
 						if (!inLineIndices) {
@@ -1035,12 +1035,20 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 	if (!renderTerrain) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 			drawing = true;
-			lineTypes.push_back(drawType);
+
+			if (!erasing) {
+				lineTypes.push_back(drawType);
+			}
+			else {
+				erase();
+			}
 		}
 		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 			drawing = false;
 
-			finishLine();
+			if (!erasing) {
+				finishLine();
+			}
 		}
 		else if (button == GLFW_MOUSE_BUTTON_MIDDLE && ((action == GLFW_PRESS) || (action == GLFW_RELEASE)))
 		{
