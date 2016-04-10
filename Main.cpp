@@ -699,52 +699,55 @@ void erase() {
 			}
 			// Whole line has been checked now
 
-			// Determines wether to starting storing points from the first point of plottedPoints
-			// or to start from the first intersection point
-			int startingIntersection;
-			if (!startPointInside) {
-				// Normal behaivour
-				// Start from firstPoint in plottedPoints
-				// Store points from even intersections to odd
-				startingIntersection = -1;
-			}
-			else {
-				// Start from first intersection
-				// Store points from odd intersections to even
-				startingIntersection = 0;
-			}
-
-			
-
-			for (int i = startingIntersection; i < ((int)pointsBeforeIntersections.size()); i = i + 2) {
-				vector<vec2> line;
-				
-				// Indicates the starting index of plottedPoints
-				int startPoint;
-				if (i == -1) {
-					startPoint = 0;
+			// Might need to add case where no intersections, but whole line is in circle
+			if (pointsBeforeIntersections.size() > 0) {
+				// Determines wether to starting storing points from the first point of plottedPoints
+				// or to start from the first intersection point
+				int startingIntersection;
+				if (!startPointInside) {
+					// Normal behaivour
+					// Start from firstPoint in plottedPoints
+					// Store points from even intersections to odd
+					startingIntersection = -1;
 				}
 				else {
-					startPoint = pointsBeforeIntersections[i];
+					// Start from first intersection
+					// Store points from odd intersections to even
+					startingIntersection = 0;
 				}
 
-				// Indicates the ending index of plottedPoints
-				int endPoint;
-				if (i == pointsBeforeIntersections.size() - 1) {
-					// If the line does not end in the erasing zone
-					endPoint = plottedPoints[lineNum].size() - 1;
+
+
+				for (int i = startingIntersection; i < ((int)pointsBeforeIntersections.size()); i = i + 2) {
+					vector<vec2> line;
+
+					// Indicates the starting index of plottedPoints
+					int startPoint;
+					if (i == -1) {
+						startPoint = 0;
+					}
+					else {
+						startPoint = pointsBeforeIntersections[i];
+					}
+
+					// Indicates the ending index of plottedPoints
+					int endPoint;
+					if (i == pointsBeforeIntersections.size() - 1) {
+						// If the line does not end in the erasing zone
+						endPoint = plottedPoints[lineNum].size() - 1;
+					}
+					else {
+						endPoint = pointsBeforeIntersections[i + 1];
+					}
+
+					// Loops through and saves the correct points
+					for (int j = startPoint; j <= endPoint; j++) {
+						line.push_back(plottedPoints[lineNum][j]);
+					}
+
+					// All points for these intersections now added to line
+					linesAfterEreasing.push_back(line);
 				}
-				else {
-					endPoint = pointsBeforeIntersections[i + 1];
-				}
-				
-				// Loops through and saves the correct points
-				for (int j = startPoint; j <= endPoint; j++) {
-					line.push_back(plottedPoints[lineNum][j]);
-				}
-				
-				// All points for these intersections now added to line
-				linesAfterEreasing.push_back(line);
 			}
 		}
 		// End of draw type check
