@@ -303,7 +303,7 @@ int containsGroundBorders(vec2 topLeft, float width, float height) {
 * Finds delta for the given u using knots[lineNum]
 */
 int findDelta(double u, int lineNum) {
-	for (int i = 0; i < knots[lineNum].size() - order; i++) {
+	for (int i = 0; i < (int)knots[lineNum].size() - order; i++) {
 		if (u >= knots[lineNum][i] && u < knots[lineNum][i + 1]) {
 			return i;
 		}
@@ -704,7 +704,7 @@ void erase() {
 	// These are the indices of of the lines that the erasing effects
 	// The lines corresponding to these indices will be erased after all have been considered
 	vector<int> lineIndices;
-	for (int lineNum = 0; lineNum < plottedPoints.size(); lineNum++) {
+	for (int lineNum = 0; lineNum < controlPoints.size(); lineNum++) {
 		
 		// Only erases lines of the correct type
 		if (lineTypes[lineNum] == drawType) {
@@ -716,11 +716,11 @@ void erase() {
 			// These are the indices of the points just before the line intersects with the circle
 			vector<int> pointsBeforeIntersections;
 
-			for (int j = 0; j < plottedPoints[lineNum].size(); j++) {
+			for (int j = 0; j < controlPoints[lineNum].size(); j++) {
 				// Uses parametric equation of circle (centreX^2 + centreY^2 = r^2)
 				// if x^2 + y^2 <= 1 the point is in or on the circle
-				float x = plottedPoints[lineNum][j].x;
-				float y = plottedPoints[lineNum][j].y;
+				float x = controlPoints[lineNum][j].x;
+				float y = controlPoints[lineNum][j].y;
 				if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= (erasingRadius / scale) * (erasingRadius / scale)) {
 					// If last point was outside, probably intersection
 					if (!inside) {
@@ -794,7 +794,7 @@ void erase() {
 					int endPoint;
 					if (i == pointsBeforeIntersections.size() - 1) {
 						// If the line does not end in the erasing zone
-						endPoint = plottedPoints[lineNum].size() - 1;
+						endPoint = controlPoints[lineNum].size() - 1;
 					}
 					else {
 						endPoint = pointsBeforeIntersections[i + 1];
@@ -802,7 +802,7 @@ void erase() {
 
 					// Loops through and saves the correct points
 					for (int j = startPoint; j <= endPoint; j++) {
-						line.push_back(plottedPoints[lineNum][j]);
+						line.push_back(controlPoints[lineNum][j]);
 					}
 
 					// All points for these intersections now added to line
@@ -818,13 +818,27 @@ void erase() {
 	// Removing from back to front so as not to affect placement of other lines to be dealt with
 	for (int i = lineIndices.size() - 1; i >= 0; i--) {
 		plottedPoints.erase(plottedPoints.begin() + lineIndices[i]);
+		controlPoints.erase(controlPoints.begin() + lineIndices[i]);
 		lineTypes.erase(lineTypes.begin() + lineIndices[i]);
+		knots.erase(knots.begin() + lineIndices[i]);
 	}
 
 	// Adding new lines
 	for (int i = 0; i < linesAfterEreasing.size(); i++) {
-		plottedPoints.push_back(linesAfterEreasing[i]);
-		lineTypes.push_back(drawType);
+		if (linesAfterEreasing[i].size() >= order) {
+			controlPoints.push_back(linesAfterEreasing[i]);
+			lineTypes.push_back(drawType);
+
+			vector <double> temp;
+			knots.push_back(temp);
+			recalculateKnots(controlPoints.size() - 1);
+			vector <vec2> temp2;
+			plottedPoints.push_back(temp2);
+			for (double u = 0; u <= 1; u += 1.0 / uStep) {
+				calculateBSpline(u, controlPoints.size() - 1);
+			}
+			calculateBSpline(0.99999999999, controlPoints.size() - 1);
+		}
 	}
 }
 
@@ -967,7 +981,7 @@ void finishLine() {
 					mergedLine.push_back(points[i]);
 				}
 			}
-			else if (mergeTypeEnd == NEW_END_AT_START && mergeAtStart == -1) {
+			else if (mergeTypeEnd == NEW_END_AT_START && mergeTypeStart == -1) {
 				// --d-->o-----> goes to --d-->----->
 
 				for (int i = 0; i < points.size() - 1; i++) {
@@ -989,6 +1003,113 @@ void finishLine() {
 					mergedLine.push_back(points[i]);
 				}
 			}
+			// Below are cases where the drawn line starts and ends at end points of other lines
+			else if (mergeTypeStart == NEW_START_AT_START && mergeTypeEnd == NEW_END_AT_START) {
+				// <-----o<--d--o-----> goes to ----->--d-->----->
+
+				for (int i = controlPoints[mergeIndexEnd].size() - 1; i > 0; i--) {
+					mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+				}
+
+				for (int i = (int)points.size() - 1; i > 0; i--) {
+					mergedLine.push_back(points[i]);
+				}
+
+				if (mergeIndexStart != mergeIndexEnd) {
+					// If not merging a broken line into a loop
+					// Push back points of other line in same order
+					for (int i = 0; i < controlPoints[mergeIndexStart].size(); i++) {
+						mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+					}
+				}
+				else {
+					// Creating a loop
+
+					// Pushing back the last point of points
+					// As it was not pushed before
+					mergedLine.push_back(points.back());
+
+					// This will prevent duplicating the already completed line
+				}
+			}
+			else if (mergeTypeStart == NEW_START_AT_START && mergeTypeEnd == NEW_END_AT_END) {
+				// ----->o<--d--o-----> goes to ----->--d-->----->
+
+				for (int i = 0; i < controlPoints[mergeIndexEnd].size() - 1; i++) {
+					mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+				}
+
+				for (int i = (int)points.size() - 1; i > 0; i--) {
+					mergedLine.push_back(points[i]);
+				}
+
+				if (mergeIndexStart != mergeIndexEnd) {
+					// If not merging a broken line into a loop
+					// Push back points of other line in same order
+					for (int i = 0; i < controlPoints[mergeIndexStart].size(); i++) {
+						mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+					}
+				}
+				else {
+					// Creating a loop
+
+					// Pushing back the last point of points
+					// As it was not pushed before
+					mergedLine.push_back(points.back());
+				}
+			}
+			else if (mergeTypeStart == NEW_START_AT_END && mergeTypeEnd == NEW_END_AT_START) {
+				// ----->o--d-->o-----> goes to ----->--d-->----->
+
+				for (int i = 0; i < controlPoints[mergeIndexStart].size() - 1; i++) {
+					mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+				}
+
+				for (int i = 0; i < points.size() - 1; i++) {
+					mergedLine.push_back(points[i]);
+				}
+
+				if (mergeIndexStart != mergeIndexEnd) {
+					// If not merging a broken line into a loop
+					// Push back points of other line in same order
+					for (int i = 0; i < controlPoints[mergeIndexEnd].size(); i++) {
+						mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+					}
+				}
+				else {
+					// Creating a loop
+
+					// Pushing back the last point of points
+					// As it was not pushed before
+					mergedLine.push_back(points.back());
+				}
+			}
+			else if (mergeTypeStart == NEW_START_AT_END && mergeTypeEnd == NEW_END_AT_END) {
+				// ----->o--d-->o<-----
+
+				for (int i = 0; i < controlPoints[mergeIndexStart].size() - 1; i++) {
+					mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+				}
+
+				for (int i = 0; i < points.size() - 1; i++) {
+					mergedLine.push_back(points[i]);
+				}
+
+				if (mergeIndexStart != mergeIndexEnd) {
+					// If not merging a broken line into a loop
+					// Push back points of other line in same order
+					for (int i = controlPoints[mergeIndexEnd].size() - 1; i >= 0; i--) {
+						mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+					}
+				}
+				else {
+					// Creating a loop
+
+					// Pushing back the last point of points
+					// As it was not pushed before
+					mergedLine.push_back(points.back());
+				}
+			}
 			
 			if (mergeIndexStart != -1) {
 				// Must erease modified line everywhere it is referenced
@@ -997,7 +1118,7 @@ void finishLine() {
 				lineTypes.erase(lineTypes.begin() + mergeIndexStart);
 				knots.erase(knots.begin() + mergeIndexStart);
 
-				if (mergeIndexEnd != -1 && mergeAtStart != mergeIndexEnd) {
+				if (mergeIndexEnd != -1 && mergeIndexStart != mergeIndexEnd) {
 					if (mergeIndexEnd > mergeIndexStart) {
 						// Decrement to accommodate the changes made by the first removal
 						mergeIndexEnd--;
