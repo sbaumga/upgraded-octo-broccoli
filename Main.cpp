@@ -27,6 +27,14 @@ enum
 	MOUNTAIN,
 };
 
+enum
+{
+	NEW_START_AT_START,
+	NEW_START_AT_END,
+	NEW_END_AT_START,
+	NEW_END_AT_END,
+};
+
 
 unsigned int OCTAVES = 4;
 float PERSISTENCE = 0.3f;
@@ -444,6 +452,58 @@ void renderDrawing() {
 		}
 	}
 
+	// Draw a circle if near an end point for a line of the same draw type
+	for (int i = 0; i < controlPoints.size(); i++) {
+		if (drawType == lineTypes[i]) {
+			if (abs(controlPoints[i].front().x - mouseX) < selectDistance && abs(controlPoints[i].front().y - mouseY) < selectDistance) {
+				glBegin(GL_POLYGON);
+				if (drawType == GROUND) {
+					// brown
+					glColor3f(0.4, 0.2, 0.0);
+				}
+				else if (drawType == WATER) {
+					glColor3f(0.0, 0.0, 1.0);
+				}
+				else if (drawType == TREES) {
+					glColor3f(0.0, 1.0, 0.0);
+				}
+				else if (drawType == MOUNTAIN) {
+					glColor3f(0.5f, 0.5f, 0.5f);
+				}
+				for (double j = 0; j < 2 * M_PI; j += M_PI / 25) {
+					double pointX = sin(j) * 0.05 + controlPoints[i].front().x;
+					double pointY = cos(j) * 0.05 + controlPoints[i].front().y;
+					glVertex2d(pointX, pointY);
+				}
+
+				glEnd();
+			}
+			else if (abs(controlPoints[i].back().x - mouseX) < selectDistance && abs(controlPoints[i].back().y - mouseY) < selectDistance) {
+				glBegin(GL_POLYGON);
+				if (drawType == GROUND) {
+					// brown
+					glColor3f(0.4, 0.2, 0.0);
+				}
+				else if (drawType == WATER) {
+					glColor3f(0.0, 0.0, 1.0);
+				}
+				else if (drawType == TREES) {
+					glColor3f(0.0, 1.0, 0.0);
+				}
+				else if (drawType == MOUNTAIN) {
+					glColor3f(0.5f, 0.5f, 0.5f);
+				}
+				for (double j = 0; j < 2 * M_PI; j += M_PI / 25) {
+					double pointX = sin(j) * 0.05 + controlPoints[i].back().x;
+					double pointY = cos(j) * 0.05 + controlPoints[i].back().y;
+					glVertex2d(pointX, pointY);
+				}
+
+				glEnd();
+			}
+		}
+	}
+
 	// Draw current line
 	glBegin(GL_LINES);
 	if (points.size() > 1) {
@@ -810,9 +870,159 @@ void finishLine() {
 					points.push_back(vec2(points.front().x, points.front().y));
 				}
 			}
+			else {
+				for (int i = 0; i < controlPoints.size(); i++) {
+					if (lineTypes[i] == drawType) {
+						if (abs(controlPoints[i].front().x - mouseX) < selectDistance && abs(controlPoints[i].front().y - mouseY) < selectDistance) {
+							// If within selecting distance of start of line of same type
+							// Make end of drawn line = start of line i
+							points.push_back(controlPoints[i].front());
+						}
+						else if (abs(controlPoints[i].back().x - mouseX) < selectDistance && abs(controlPoints[i].back().y - mouseY) < selectDistance) {
+							// If within selecting distance of start of line of same type
+							// Make end of drawn line = end of line i
+							points.push_back(controlPoints[i].back());
+						}
+					}
+				}
+			}
 		}
 
-		controlPoints.push_back(points);
+		bool mergeLines = false;
+		bool mergeAtStart = false;
+		bool mergeAtEnd = false;
+		int mergeTypeStart = -1;
+		int mergeTypeEnd = -1;
+		int mergeIndexStart = -1;
+		int mergeIndexEnd = -1;
+		
+		for (int i = 0; i < controlPoints.size(); i++) {
+			if (lineTypes[i] == drawType) {
+				if (points.front() == controlPoints[i].front()) {
+					// If the first point of the drawing line matches exactly with the
+					// first point of another line of the same type
+					// means that the drawing line starts at the start of the matching line
+					mergeLines = true;
+					mergeAtStart = true;
+					mergeTypeStart = NEW_START_AT_START;
+					mergeIndexStart = i;
+				}
+				else if (points.front() == controlPoints[i].back()) {
+					// New line starts at the end of the ith line
+					mergeLines = true;
+					mergeAtStart = true;
+					mergeTypeStart = NEW_START_AT_END;
+					mergeIndexStart = i;
+				}
+				else if (points.back() == controlPoints[i].front()) {
+					// New line ends at start of the ith line
+					mergeLines = true;
+					mergeAtEnd = true;
+					mergeTypeEnd = NEW_END_AT_START;
+					mergeIndexEnd = i;
+				}
+				else if (points.back() == controlPoints[i].back()) {
+					// New line ends at end of the ith line
+					mergeLines = true;
+					mergeAtEnd = true;
+					mergeTypeEnd = NEW_END_AT_END;
+					mergeIndexEnd = i;
+				}
+			}
+		}
+
+		if (!mergeLines) {
+			// Normal behaviours
+			controlPoints.push_back(points);
+		}
+		else {
+			vector <vec2> mergedLine;
+			if (mergeTypeStart == NEW_START_AT_START && mergeTypeEnd == -1) {
+				// <--d--o-----> goes to --d-->----->
+				// example of line
+				// d is the drawn line, o is the joining point for the two lines
+
+				// Push back drawn line in reverse order, EXCEPT for the last point
+				// Last point of this line, is the same as the last point for the second line
+				// Do not want to dupelicate it and give it more weight than all other points
+				for (int i = (int)points.size() - 1; i > 0; i--) {
+					mergedLine.push_back(points[i]);
+				}
+
+				// Push back points of other line in same order
+				for (int i = 0; i < controlPoints[mergeIndexStart].size(); i++) {
+					mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+				}
+
+			}
+			else if (mergeTypeStart == NEW_START_AT_END && mergeTypeEnd == -1) {
+				// ----->o--d--> goes to ----->--d-->
+
+				// Again, do not want to duplicate shared point
+				for (int i = 0; i < controlPoints[mergeIndexStart].size() - 1; i++) {
+					mergedLine.push_back(controlPoints[mergeIndexStart][i]);
+				}
+
+				for (int i = 0; i < points.size(); i++) {
+					mergedLine.push_back(points[i]);
+				}
+			}
+			else if (mergeTypeEnd == NEW_END_AT_START && mergeAtStart == -1) {
+				// --d-->o-----> goes to --d-->----->
+
+				for (int i = 0; i < points.size() - 1; i++) {
+					mergedLine.push_back(points[i]);
+				}
+
+				for (int i = 0; i < controlPoints[mergeIndexEnd].size(); i++) {
+					mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+				}
+			}
+			else if (mergeTypeEnd == NEW_END_AT_END && mergeTypeStart == -1) {
+				// ----->o<--d-- goes to ----->--d-->
+
+				for (int i = 0; i < controlPoints[mergeIndexEnd].size() - 1; i++) {
+					mergedLine.push_back(controlPoints[mergeIndexEnd][i]);
+				}
+
+				for (int i = (int)points.size() - 1; i > 0; i--) {
+					mergedLine.push_back(points[i]);
+				}
+			}
+			
+			if (mergeIndexStart != -1) {
+				// Must erease modified line everywhere it is referenced
+				plottedPoints.erase(plottedPoints.begin() + mergeIndexStart);
+				controlPoints.erase(controlPoints.begin() + mergeIndexStart);
+				lineTypes.erase(lineTypes.begin() + mergeIndexStart);
+				knots.erase(knots.begin() + mergeIndexStart);
+
+				if (mergeIndexEnd != -1 && mergeAtStart != mergeIndexEnd) {
+					if (mergeIndexEnd > mergeIndexStart) {
+						// Decrement to accommodate the changes made by the first removal
+						mergeIndexEnd--;
+					}
+
+					plottedPoints.erase(plottedPoints.begin() + mergeIndexEnd);
+					controlPoints.erase(controlPoints.begin() + mergeIndexEnd);
+					lineTypes.erase(lineTypes.begin() + mergeIndexEnd);
+					knots.erase(knots.begin() + mergeIndexEnd);
+				}
+			}
+			else if (mergeIndexEnd != -1) {
+				plottedPoints.erase(plottedPoints.begin() + mergeIndexEnd);
+				controlPoints.erase(controlPoints.begin() + mergeIndexEnd);
+				lineTypes.erase(lineTypes.begin() + mergeIndexEnd);
+				knots.erase(knots.begin() + mergeIndexEnd);
+			}
+			
+			// Correct line type was already pushed in correct location when line 
+			// was started
+			// So just need to push the merged line
+			controlPoints.push_back(mergedLine);
+
+
+		}
 
 		vector <double> temp;
 		knots.push_back(temp);
@@ -1037,6 +1247,20 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 			drawing = true;
 
 			if (!erasing) {
+				for (int i = 0; i < controlPoints.size(); i++) {
+					if (lineTypes[i] == drawType) {
+						if (abs(controlPoints[i].front().x - mouseX) < selectDistance && abs(controlPoints[i].front().y - mouseY) < selectDistance) {
+							// If within selecting distance of start of line of same type
+							// Make start of drawn line = start of line i
+							points.push_back(controlPoints[i].front());
+						}
+						else if (abs(controlPoints[i].back().x - mouseX) < selectDistance && abs(controlPoints[i].back().y - mouseY) < selectDistance) {
+							// If within selecting distance of end of line of same type
+							// Make start of drawn line = end of line i
+							points.push_back(controlPoints[i].back());
+						}
+					}
+				}
 				lineTypes.push_back(drawType);
 			}
 			else {
@@ -1049,6 +1273,8 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 			if (!erasing) {
 				finishLine();
 			}
+
+			cout << "Num of lines: " << plottedPoints.size() << "\n";
 		}
 		else if (button == GLFW_MOUSE_BUTTON_MIDDLE && ((action == GLFW_PRESS) || (action == GLFW_RELEASE)))
 		{
