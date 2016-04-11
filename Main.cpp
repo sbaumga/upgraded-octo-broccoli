@@ -47,6 +47,7 @@ int w, h;
 double mouseX, mouseY;
 
 vector < int > lineTypes;
+vector < int > lineTypes2;
 vector < vector < vec2 > > controlPoints;
 vector < vec2 > points;
 vector < vector < double > > knots;
@@ -399,7 +400,7 @@ void renderDrawing() {
 	if (plottedPoints.size() >= 1) {
 		for (int i = 0; i < plottedPoints.size(); i++) {
 			vector < vec2 > line = plottedPoints[i];
-			int type = lineTypes[i];
+			int type = lineTypes2[i];
 			if (type == GROUND) {
 				// brown
 				glColor3f(0.4, 0.2, 0.0);
@@ -707,7 +708,7 @@ void erase() {
 	for (int lineNum = 0; lineNum < controlPoints.size(); lineNum++) {
 		
 		// Only erases lines of the correct type
-		if (lineTypes[lineNum] == drawType) {
+		if (lineTypes2[lineNum] == drawType) {
 			bool inLineIndices = false;
 			bool startPointInside = false;
 			// Tracks if the intersection will be moving out of or into the circle
@@ -812,15 +813,133 @@ void erase() {
 		}
 		// End of draw type check
 	}
+
+	vector < vector <vec2> > linesAfterEreasing2;
+	// These are the indices of of the lines that the erasing effects
+	// The lines corresponding to these indices will be erased after all have been considered
+	vector<int> lineIndices2;
+	for (int lineNum = 0; lineNum < plottedPoints.size(); lineNum++) {
+
+		// Only erases lines of the correct type
+		if (lineTypes2[lineNum] == drawType) {
+			bool inLineIndices = false;
+			bool startPointInside = false;
+			// Tracks if the intersection will be moving out of or into the circle
+			bool inside = false;
+
+			// These are the indices of the points just before the line intersects with the circle
+			vector<int> pointsBeforeIntersections;
+
+			for (int j = 0; j < plottedPoints[lineNum].size(); j++) {
+				// Uses parametric equation of circle (centreX^2 + centreY^2 = r^2)
+				// if x^2 + y^2 <= 1 the point is in or on the circle
+				float x = plottedPoints[lineNum][j].x;
+				float y = plottedPoints[lineNum][j].y;
+				if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= (erasingRadius / scale) * (erasingRadius / scale)) {
+					// If last point was outside, probably intersection
+					if (!inside) {
+						if (!inLineIndices) {
+							// Push back line num, as this line will be affected by the erasing
+							inLineIndices = true;
+							lineIndices2.push_back(lineNum);
+						}
+
+						// Now inside the circle
+						inside = true;
+						if (j == 0) {
+							// If this is the first point, then no intersection has taken place
+							// But this will mean that the points going from odd to even intersection numbers
+							// will be kept, instead of erased like normal
+							startPointInside = true;
+						}
+						else {
+							// Pushing point j - 1 as we want to keep track of the points outside of the circle
+							// and j is outside, but j - 1 was not
+							pointsBeforeIntersections.push_back(j - 1);
+						}
+					}
+				}
+				// Otherwise point outside of circle
+				else {
+					// If last point was inside, intersection
+					if (inside) {
+						// Now outside
+						inside = false;
+
+						// Pushing back j because we want points outside of the circle and this time j is outside
+						pointsBeforeIntersections.push_back(j);
+					}
+				}
+			}
+			// Whole line has been checked now
+
+			// Might need to add case where no intersections, but whole line is in circle
+			if (pointsBeforeIntersections.size() > 0) {
+				// Determines wether to starting storing points from the first point of plottedPoints
+				// or to start from the first intersection point
+				int startingIntersection;
+				if (!startPointInside) {
+					// Normal behaivour
+					// Start from firstPoint in plottedPoints
+					// Store points from even intersections to odd
+					startingIntersection = -1;
+				}
+				else {
+					// Start from first intersection
+					// Store points from odd intersections to even
+					startingIntersection = 0;
+				}
+
+
+
+				for (int i = startingIntersection; i < ((int)pointsBeforeIntersections.size()); i = i + 2) {
+					vector<vec2> line;
+
+					// Indicates the starting index of plottedPoints
+					int startPoint;
+					if (i == -1) {
+						startPoint = 0;
+					}
+					else {
+						startPoint = pointsBeforeIntersections[i];
+					}
+
+					// Indicates the ending index of plottedPoints
+					int endPoint;
+					if (i == pointsBeforeIntersections.size() - 1) {
+						// If the line does not end in the erasing zone
+						endPoint = plottedPoints[lineNum].size() - 1;
+					}
+					else {
+						endPoint = pointsBeforeIntersections[i + 1];
+					}
+
+					// Loops through and saves the correct points
+					for (int j = startPoint; j <= endPoint; j++) {
+						line.push_back(plottedPoints[lineNum][j]);
+					}
+
+					// All points for these intersections now added to line
+					linesAfterEreasing2.push_back(line);
+				}
+			}
+		}
+		// End of draw type check
+	}
+
 	// All lines have now been checked
 
 	// Removing now incorrect lines
 	// Removing from back to front so as not to affect placement of other lines to be dealt with
 	for (int i = lineIndices.size() - 1; i >= 0; i--) {
-		plottedPoints.erase(plottedPoints.begin() + lineIndices[i]);
 		controlPoints.erase(controlPoints.begin() + lineIndices[i]);
+		//knots.erase(knots.begin() + lineIndices[i]);
 		lineTypes.erase(lineTypes.begin() + lineIndices[i]);
-		knots.erase(knots.begin() + lineIndices[i]);
+	}
+
+	for (int i = lineIndices2.size() - 1; i >= 0; i--) {
+		plottedPoints.erase(plottedPoints.begin() + lineIndices2[i]);
+		lineTypes2.erase(lineTypes2.begin() + lineIndices2[i]);
 	}
 
 	// Adding new lines
@@ -829,6 +948,7 @@ void erase() {
 			controlPoints.push_back(linesAfterEreasing[i]);
 			lineTypes.push_back(drawType);
 
+			/*
 			vector <double> temp;
 			knots.push_back(temp);
 			recalculateKnots(controlPoints.size() - 1);
@@ -838,6 +958,14 @@ void erase() {
 				calculateBSpline(u, controlPoints.size() - 1);
 			}
 			calculateBSpline(0.99999999999, controlPoints.size() - 1);
+			*/
+		}
+	}
+
+	for (int i = 0; i < linesAfterEreasing2.size(); i++) {
+		if (linesAfterEreasing2[i].size() > 1) {
+			plottedPoints.push_back(linesAfterEreasing2[i]);
+			lineTypes2.push_back(drawType);
 		}
 	}
 }
@@ -1149,6 +1277,7 @@ void finishLine() {
 		knots.push_back(temp);
 		recalculateKnots(controlPoints.size() - 1);
 		vector <vec2> temp2;
+		lineTypes2.push_back(lineTypes.back());
 		plottedPoints.push_back(temp2);
 		for (double u = 0; u <= 1; u += 1.0 / uStep) {
 			calculateBSpline(u, controlPoints.size() - 1);
@@ -1393,6 +1522,25 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 
 			if (!erasing) {
 				finishLine();
+			}
+			else {
+				knots.clear();
+				plottedPoints.clear();
+				lineTypes2.clear();
+
+				for (int i = 0; i < controlPoints.size(); i++) {
+					vector <double> temp;
+					knots.push_back(temp);
+					recalculateKnots(i);
+					vector <vec2> temp2;
+					lineTypes2.push_back(lineTypes.back());
+					plottedPoints.push_back(temp2);
+					for (double u = 0; u <= 1; u += 1.0 / uStep) {
+						calculateBSpline(u, i);
+					}
+					calculateBSpline(0.99999999999, i);
+					points.clear();
+				}
 			}
 
 			cout << "Num of lines: " << plottedPoints.size() << "\n";
