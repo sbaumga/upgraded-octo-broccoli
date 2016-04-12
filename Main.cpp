@@ -302,6 +302,34 @@ int containsGroundBorders(vec2 topLeft, float width, float height) {
 	return groundPointCounter;
 }
 
+bool inPolygon(vec2 point, vector<Edge>* edges)
+{
+	unsigned int intersections = 0;
+
+	for (unsigned int i = 0; i < edges->size(); i++)
+	{
+		vec2 p1 = *edges->at(i).p1;
+		vec2 dir = *edges->at(i).p2 - p1;
+
+		float t = (point.y - p1.y) / (dir.y);
+		vec2 intersectedPoint = p1 + dir*t;
+
+		if ((intersectedPoint.x > point.x) && (t > 0.f) && (t < 1.f))
+			intersections++;
+	}
+
+	return (intersections & 1);
+}
+
+bool inPartitionedPolygon(vec2 point, vector<vector<Edge>>* partition, float minY, float maxY)
+{
+	float increment = (maxY - minY) / (float)(partition->size() - 1);
+	
+	unsigned int index = (point.y - minY) / increment;
+
+	return inPolygon(point, &partition->at(index));
+}
+
 
 
 /*
@@ -500,7 +528,8 @@ void renderDrawing() {
 	glVertex2f(-10.0f, sliceStart + sliceSize);
 	glVertex2f(10.0f, sliceStart + sliceSize);
 
-	glLineWidth(5.f);
+
+/*	glLineWidth(5.f);
 	glColor3f(1.f, 0.f, 0.f);
 	for (unsigned int i = 0; i < partition.size(); i++)
 	{
@@ -522,7 +551,24 @@ void renderDrawing() {
 
 	glEnd();
 
-	glLineWidth(1.f);
+	glLineWidth(1.f);*/
+
+	float increment = canvasHeight / 29.f;
+
+	glBegin(GL_POINTS);
+	for (unsigned int i = 0; i < 30; i++)
+	{
+		for (unsigned int j = 0; j < 30; j++)
+		{
+			vec2 point(
+				increment*(float)i - canvasWidth*0.5f,
+				increment*(float)j - canvasHeight*0.5f);
+
+			if (inPartitionedPolygon(point, &partition, -canvasHeight*0.5f, canvasHeight*0.5f))
+				glVertex2f(point.x, point.y);
+		}
+	}
+	glEnd();
 	
 	
 
