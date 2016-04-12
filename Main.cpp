@@ -35,10 +35,7 @@ enum
 	NEW_END_AT_END,
 };
 
-struct Edge {
-	vec2* p1;
-	vec2* p2;
-};
+const unsigned int NUMBER_OF_SLICES = 50;
 
 
 unsigned int OCTAVES = 4;
@@ -305,6 +302,8 @@ int containsGroundBorders(vec2 topLeft, float width, float height) {
 	return groundPointCounter;
 }
 
+
+
 /*
  * Returns a vector containing the two points that make up each line that crosses either border of the horizontal slice
  * defined by the two y values
@@ -351,10 +350,39 @@ vector<Edge> findEdges(int lineType, float topY, float bottomY) {
 					}
 				}
 			}
+
+			//Additional case to add all internal, non-crossing edges
+			for (int i = 1; i < controlPoints[lineNum].size(); i++)
+			{
+				if ((controlPoints[lineNum][i - 1].y < topY) &&
+					(controlPoints[lineNum][i - 1].y > bottomY) &&
+					(controlPoints[lineNum][i].y < topY) &&
+					(controlPoints[lineNum][i].y > bottomY))
+				{
+					Edge temp;
+					temp.p1 = &controlPoints[lineNum][i - 1];
+					temp.p2 = &controlPoints[lineNum][i];
+					crossingEdges.push_back(temp);
+				}
+			}
 		}
 	}
 
 	return crossingEdges;
+}
+
+void partitionEdgesIntoSlices(int lineType, float minY, float maxY, unsigned int numSlices, vector<vector<Edge>>* partition)
+{
+	partition->clear();
+
+	float increment = (maxY - minY) / (float)(numSlices - 1);
+	float low = minY;
+
+	for (unsigned int i = 0; i < numSlices; i++)
+	{
+		partition->push_back(findEdges(lineType, low + increment, low));
+		low += increment;
+	}
 }
 
 /*
@@ -434,7 +462,7 @@ void recalculateKnots(int lineNum) {
 void renderDrawing() {
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	glBegin(GL_QUADS);
 		//Shadow
 		glColor3f(0.f, 0.f, 0.f);
@@ -453,18 +481,49 @@ void renderDrawing() {
 	
 	
 	// Debugging edge detection
-	/*
+	float sliceStart = 0.f;
+	float sliceSize = 0.1f;
+
+	vector<Edge> edgesInSlice = findEdges(GROUND, sliceStart+sliceSize, sliceStart);
+	vector<vector<Edge>> partition;
+
+	partitionEdgesIntoSlices(GROUND, canvasHeight*-0.5, canvasHeight*0.5, NUMBER_OF_SLICES, &partition);
+
+	printf("Segments in slice = %d\n", partition.size());
+
 	glBegin(GL_LINES);
 
 	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex2f(-10.0f, 0.0f);
-	glVertex2f(10.0f, 0.0f);
+	glVertex2f(-10.0f, sliceStart);
+	glVertex2f(10.0f, sliceStart);
 
-	glVertex2f(-10.0f, -1.0f);
-	glVertex2f(10.0f, -1.0f);
+	glVertex2f(-10.0f, sliceStart + sliceSize);
+	glVertex2f(10.0f, sliceStart + sliceSize);
+
+	glLineWidth(5.f);
+	glColor3f(1.f, 0.f, 0.f);
+	for (unsigned int i = 0; i < partition.size(); i++)
+	{
+		if (i % 2 == 0)
+		{
+			glColor3f(
+				1.f - (float)i / (float)(partition.size() - 1),
+				0.f,
+				(float)i / (float)(partition.size() - 1));
+
+			for (unsigned int j = 0; j < partition[i].size(); j++)
+			{
+				glVertex2f(partition[i][j].p1->x + 0.1f, partition[i][j].p1->y);
+				glVertex2f(partition[i][j].p2->x + 0.1f, partition[i][j].p2->y);
+			}
+		}
+		
+	}
 
 	glEnd();
-	*/
+
+	glLineWidth(1.f);
+	
 	
 
 	glBegin(GL_LINES);
@@ -1059,7 +1118,7 @@ void render() {
 		glRotatef(rotateX, 1.0f, 0.0f, 0.0f);
 		glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
 	}
-	glScalef(scale, scale, scale);
+	glScalef(scale, scale, 1.f);
 
 	//Functions for changing projection matrix
 	glMatrixMode(GL_PROJECTION);

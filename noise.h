@@ -18,6 +18,11 @@ using namespace glm;
 
 const int range = 3;
 
+struct Edge {
+	vec2* p1;
+	vec2* p2;
+};
+
 class Octave
 {
 private:
