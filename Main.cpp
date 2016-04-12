@@ -62,7 +62,7 @@ double uStep = 1000;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
-double selectDistance = 0.05;
+double selectDistance = 0.06;
 
 bool erasing = false;
 float erasingRadius = 0.05f;
@@ -1713,11 +1713,14 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	if (!renderTerrain) {
 		if (drawing) {
 			if (!erasing) {
-				if (points.size() > 0) {
-					double distanceX = abs(mouseX - points.back().x);
-					double distanceY = abs(mouseY - points.back().y);
-					if (distanceX >= 0.01 || distanceY >= 0.01) {
+				if (points.size() > 1) {
+					double distanceX = abs(points[points.size() - 2].x - points.back().x);
+					double distanceY = abs(points[points.size() - 2].y - points.back().y);
+					if (distanceX >= selectDistance || distanceY >= selectDistance) {
 						points.push_back(vec2(mouseX, mouseY));
+					}
+					else {
+						points[points.size() - 1] = vec2(mouseX, mouseY);
 					}
 				}
 				else {
