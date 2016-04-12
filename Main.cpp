@@ -35,6 +35,11 @@ enum
 	NEW_END_AT_END,
 };
 
+struct Edge {
+	vec2* p1;
+	vec2* p2;
+};
+
 
 unsigned int OCTAVES = 4;
 float PERSISTENCE = 0.3f;
@@ -301,6 +306,58 @@ int containsGroundBorders(vec2 topLeft, float width, float height) {
 }
 
 /*
+ * Returns a vector containing the two points that make up each line that crosses either border of the horizontal slice
+ * defined by the two y values
+ * Only returns Edges for lines of the given line type
+ *
+ * topY should be the higher y value (i.e. closest to the top of the screen)
+ * and bottomY should be the lower y value
+ */
+vector<Edge> findEdges(int lineType, float topY, float bottomY) {
+	vector<Edge> crossingEdges;
+	for (int lineNum = 0; lineNum < controlPoints.size(); lineNum++) {
+		if (lineTypes[lineNum] == lineType) {
+			bool inside;
+			if (controlPoints[lineNum].front().y <= topY && controlPoints[lineNum].front().y > bottomY) {
+				inside = true;
+			}
+			else {
+				inside = false;
+			}
+
+			// Starts at 1 because we already know where the first point lie from above
+			// Also because an edge needs two points to be defined
+			for (int i = 1; i < controlPoints[lineNum].size(); i++) {
+				if (inside) {
+					// If inside, check if point lies outside
+					if (controlPoints[lineNum][i].y > topY || controlPoints[lineNum][i].y <= bottomY) {
+						inside = false;
+						Edge temp;
+						temp.p1 = &controlPoints[lineNum][i - 1];
+						temp.p2 = &controlPoints[lineNum][i];
+
+						crossingEdges.push_back(temp);
+					}
+				}
+				else {
+					// If outside, check if point lies inside
+					if (controlPoints[lineNum][i].y <= topY && controlPoints[lineNum][i].y > bottomY) {
+						inside = true;
+						Edge temp;
+						temp.p1 = &controlPoints[lineNum][i - 1];
+						temp.p2 = &controlPoints[lineNum][i];
+
+						crossingEdges.push_back(temp);
+					}
+				}
+			}
+		}
+	}
+
+	return crossingEdges;
+}
+
+/*
 * Finds delta for the given u using knots[lineNum]
 */
 int findDelta(double u, int lineNum) {
@@ -394,6 +451,22 @@ void renderDrawing() {
 		glVertex3f(-canvasWidth*0.5, canvasHeight*0.5, -0.99f);
 	glEnd();
 	
+	
+	// Debugging edge detection
+	/*
+	glBegin(GL_LINES);
+
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex2f(-10.0f, 0.0f);
+	glVertex2f(10.0f, 0.0f);
+
+	glVertex2f(-10.0f, -1.0f);
+	glVertex2f(10.0f, -1.0f);
+
+	glEnd();
+	*/
+	
+
 	glBegin(GL_LINES);
 	
 	// Draw finished lines
@@ -1573,6 +1646,7 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 	mouseX = mouseX / scale;
 	mouseY = mouseY / scale;
 
+	//cout << "mouseX: " << mouseX << " mouseY: " << mouseY << "\n";
 
 	vec2 diff = vec2((2 * x / w) - 1, (-2 * y / h) + 1) - lastPos;
 	lastPos = vec2((2 * x / w) - 1, (-2 * y / h) + 1);
