@@ -47,6 +47,8 @@ bool loadMap(string fileName, vector<vector<vec2>>* lineSegments, vector<int>* l
 	{
 		if (sscanf(line.c_str(), "Line %d", &lineType) == 1)
 		{
+			printf("Linetype = %d\n", lineType);
+
 			//Add new line
 			lineTypes->push_back(lineType);
 			vector<vec2> newLineSeg;

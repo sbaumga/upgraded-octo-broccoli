@@ -17,8 +17,8 @@
 using namespace std;
 using namespace glm;
 
-const int PLANE_DIM_X = 400;
-const int PLANE_DIM_Z = 400;
+const int PLANE_DIM_X = 800;
+const int PLANE_DIM_Z = 800;
 
 enum
 {
@@ -41,11 +41,11 @@ const unsigned int NUMBER_OF_SLICES = 50;
 
 unsigned int OCTAVES = 5;
 float PERSISTENCE = 0.4f;
-unsigned int RANGE = 40;
+unsigned int RANGE = 80;
 
 unsigned int LAND_OCTAVES = 7;
 float LAND_PERSISTENCE = 0.6;
-unsigned int LAND_RANGE = 8;
+unsigned int LAND_RANGE = 16;
 
 PerlinNoise mountainNoise(OCTAVES, PERSISTENCE, RANGE);
 PerlinNoise landNoise(LAND_OCTAVES, LAND_PERSISTENCE, LAND_RANGE);
@@ -497,8 +497,6 @@ void renderDrawing() {
 		vector<vector<Edge>> partition;
 
 		partitionEdgesIntoSlices(GROUND, canvasHeight*-0.5, canvasHeight*0.5, NUMBER_OF_SLICES, &partition);
-
-		printf("Segments in slice = %d\n", partition.size());
 
 		glBegin(GL_LINES);
 
@@ -1720,12 +1718,12 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 			if (!erasing) {
 				for (int i = 0; i < controlPoints.size(); i++) {
 					if (lineTypes[i] == drawType) {
-						if (abs(controlPoints[i].front().x - mouseX) < selectDistance && abs(controlPoints[i].front().y - mouseY) < selectDistance) {
+						if (abs(controlPoints[i].front().x - mouseX) < selectDistance*scale && abs(controlPoints[i].front().y - mouseY) < selectDistance*scale) {
 							// If within selecting distance of start of line of same type
 							// Make start of drawn line = start of line i
 							points.push_back(controlPoints[i].front());
 						}
-						else if (abs(controlPoints[i].back().x - mouseX) < selectDistance && abs(controlPoints[i].back().y - mouseY) < selectDistance) {
+						else if (abs(controlPoints[i].back().x - mouseX) < selectDistance*scale && abs(controlPoints[i].back().y - mouseY) < selectDistance*scale) {
 							// If within selecting distance of end of line of same type
 							// Make start of drawn line = end of line i
 							points.push_back(controlPoints[i].back());
@@ -1805,7 +1803,7 @@ void mousePos(GLFWwindow *sender, double x, double y) {
 				if (points.size() > 1) {
 					double distanceX = abs(points[points.size() - 2].x - points.back().x);
 					double distanceY = abs(points[points.size() - 2].y - points.back().y);
-					if (distanceX >= selectDistance || distanceY >= selectDistance) {
+					if (distanceX >= selectDistance || distanceY >= selectDistance || drawType == MOUNTAIN) {
 						points.push_back(vec2(mouseX, mouseY));
 					}
 					else {
