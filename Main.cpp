@@ -42,7 +42,12 @@ unsigned int OCTAVES = 4;
 float PERSISTENCE = 0.3f;
 unsigned int RANGE = 40;
 
-PerlinNoise noise(OCTAVES, PERSISTENCE, 8);
+unsigned int LAND_OCTAVES = 4;
+float LAND_PERSISTENCE = 0.2;
+unsigned int LAND_RANGE = 8;
+
+PerlinNoise mountainNoise(OCTAVES, PERSISTENCE, RANGE);
+PerlinNoise landNoise(LAND_OCTAVES, LAND_PERSISTENCE, LAND_RANGE);
 
 GLFWwindow *window;
 int w, h;
@@ -300,34 +305,6 @@ int containsGroundBorders(vec2 topLeft, float width, float height) {
 		}
 	}
 	return groundPointCounter;
-}
-
-bool inPolygon(vec2 point, vector<Edge>* edges)
-{
-	unsigned int intersections = 0;
-
-	for (unsigned int i = 0; i < edges->size(); i++)
-	{
-		vec2 p1 = *edges->at(i).p1;
-		vec2 dir = *edges->at(i).p2 - p1;
-
-		float t = (point.y - p1.y) / (dir.y);
-		vec2 intersectedPoint = p1 + dir*t;
-
-		if ((intersectedPoint.x > point.x) && (t > 0.f) && (t < 1.f))
-			intersections++;
-	}
-
-	return (intersections & 1);
-}
-
-bool inPartitionedPolygon(vec2 point, vector<vector<Edge>>* partition, float minY, float maxY)
-{
-	float increment = (maxY - minY) / (float)(partition->size() - 1);
-	
-	unsigned int index = (point.y - minY) / increment;
-
-	return inPolygon(point, &partition->at(index));
 }
 
 
@@ -873,8 +850,16 @@ void render3D() {
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	r.loadModelBuffer(&terrainPoints, &terrainNormals, &terrainIndices);
 	r.updateTransform();
 	r.render3DView();
+
+	/*vector<vec3> verts, normals;
+	vector<vec2> uvs;
+	vector<unsigned int> indices;
+	generatePlane(2, 2, canvasWidth, canvasHeight, &verts, &normals, &uvs, &indices);
+	r.loadModelBuffer(&verts, &normals, &indices);
+	r.render3DView();*/
 }
 
 void erase() {
@@ -1472,13 +1457,20 @@ void createRandomizedPlane()
 
 	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
 
+	vector<vector<Edge>> partition;
+
+	partitionEdgesIntoSlices(GROUND, canvasHeight*-0.5, canvasHeight*0.5, NUMBER_OF_SLICES, &partition);
+
 	//noise = PerlinNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
-	noise.generateMountainNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
+	mountainNoise.generateMountainNoise(OCTAVES, PERSISTENCE, RANGE, canvasWidth, canvasHeight, mountainCenters, mountainRadii);
+
+	landNoise.generateLandmassNoise(LAND_OCTAVES, LAND_PERSISTENCE, LAND_RANGE, canvasWidth, canvasHeight, -0.5f*canvasHeight, &partition);
 
 	//Initialize Plane
 	generatePlane(PLANE_DIM_X, PLANE_DIM_Z, canvasHeight, canvasWidth, &terrainPoints, &terrainNormals, &terrainUVs, &terrainIndices);
 
 	float scale = 1.f*std::min(canvasHeight, canvasHeight) / (float)RANGE;
+	float landScale = 0.125f*std::min(canvasHeight, canvasHeight) / (float)LAND_RANGE;
 
 	//Add perlin noise to plane
 	for (unsigned int i = 0; i < terrainPoints.size(); i++)
@@ -1486,8 +1478,9 @@ void createRandomizedPlane()
 		vec2 uv = terrainUVs[i];
 		vec3 point = terrainPoints[i];
 
-		terrainPoints[i] = vec3(point.x, noise.get(-uv.x + 1.f, uv.y)*scale - scale*0.5, point.z);
-		terrainNormals[i] = noise.getNormal(uv.x, uv.y);
+		terrainPoints[i] = vec3(
+			point.x, 
+			landNoise.get(-uv.x + 1.f, uv.y)*landScale + mountainNoise.get(-uv.x + 1.f, uv.y)*scale - scale*0.5, point.z);
 	}
 
 	//Calculate normals

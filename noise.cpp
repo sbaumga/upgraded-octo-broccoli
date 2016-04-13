@@ -86,6 +86,41 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 	}
 }
 
+//Constructor for landmass
+Octave::Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, float minY, vector<vector<Edge>>* partitions):freq(_freq), persistence(_persistence),
+dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
+{
+	float radius = std::max(xWidth, yWidth) / ((float)(dimension - 1));
+	float width = xWidth / ((float)(dimension - 1));
+	float height = yWidth / ((float)(dimension - 1));
+	float xOffset = -xWidth*0.5f;
+	float yOffset = -yWidth*0.5f;
+
+	for (int i = 0; i<dimension; i++)
+	{
+		for (int j = 0; j<dimension; j++)
+		{
+			vec2 center(
+				xOffset + width*(float)j,
+				yOffset + height*(float)i);
+
+			float coverage; 
+/*			if (inPartitionedPolygon(center, partitions, minY, minY + yWidth))
+				coverage = 1.f;
+			else
+				coverage = -1.f;*/
+
+			coverage = polygonCoverage(center, partitions, minY, minY + yWidth, width, height, 5);
+
+			float randomValue = ((float)rand() / RAND_MAX);
+			if (coverage >= 0.99f)
+				noise.push_back((randomValue*amplitude*0.75f + 0.25f)*coverage);
+			else
+				noise.push_back(-randomValue*amplitude);
+		}
+	}
+}
+
 
 
 bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii)
@@ -204,6 +239,18 @@ void PerlinNoise::generateMountainNoise(int _maxFreq, float _persistence, int _r
 	}
 }
 
+void PerlinNoise::generateLandmassNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, float minY, vector<vector<Edge>>* partitions)
+{
+	srand(time(0));
+	octaves.clear();
+	octaves.clear();
+
+	for (int i = 0; i < _maxFreq; i++)
+	{
+		octaves.push_back(Octave(i, _persistence, _range, xWidth, yWidth, minY, partitions));
+	}
+}
+
 float PerlinNoise::get(float x, float y)
 {
     float value = 0.0;
@@ -225,6 +272,59 @@ glm::vec3 PerlinNoise::getNormal(float x, float y)
 	glm::vec3 v(0.f, get(x, y + inc), inc);
 
 	return normalize(cross((v - base), (u - base)));
+}
+
+float polygonCoverage(vec2 point, vector<vector<Edge>>* partitions, float minY, float maxY, float width, float height, unsigned int comparisons)
+{
+	float coverage = 0.f;
+	float comparisonsMade = 0.f;
+
+	for (unsigned int i = 0; i < comparisons; i++)
+	{
+		for (unsigned int j = 0; j < comparisons; j++)
+		{
+			vec2 offset(
+				width*((float)j) / (float)(comparisons - 1) - width*0.5f,
+				height*((float)i) / (float)(comparisons - 1) - height*0.5f);
+
+			if (inPartitionedPolygon(point + offset, partitions, minY, maxY))
+				coverage++;
+			comparisonsMade++;
+		}
+	}
+
+	coverage = coverage / comparisonsMade++;
+
+	return coverage;
+}
+
+//Detecting if within polygon
+bool inPolygon(vec2 point, vector<Edge>* edges)
+{
+	unsigned int intersections = 0;
+
+	for (unsigned int i = 0; i < edges->size(); i++)
+	{
+		vec2 p1 = *edges->at(i).p1;
+		vec2 dir = *edges->at(i).p2 - p1;
+
+		float t = (point.y - p1.y) / (dir.y);
+		vec2 intersectedPoint = p1 + dir*t;
+
+		if ((intersectedPoint.x > point.x) && (t > 0.f) && (t < 1.f))
+			intersections++;
+	}
+
+	return (intersections & 1);
+}
+
+bool inPartitionedPolygon(vec2 point, vector<vector<Edge>>* partition, float minY, float maxY)
+{
+	float increment = (maxY - minY) / (float)(partition->size() - 1);
+
+	unsigned int index = clamp((point.y - minY) / increment, 0, partition->size()-1);
+
+	return inPolygon(point, &partition->at(index));
 }
 
 

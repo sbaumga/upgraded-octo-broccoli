@@ -42,6 +42,8 @@ public:
 
 	Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);
 
+	Octave(int _freq, float _persistence, int _range, float xWidth, float yWidth, float minY, vector<vector<Edge>>* partitions);
+
 	float getValueAt(int x, int y);
 
 	float getValueAt(float x, float y);
@@ -62,6 +64,8 @@ public:
 
 	void generateMountainNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, const vector<vec2>& centers, const vector<float>& radii);
 
+	void generateLandmassNoise(int _maxFreq, float _persistence, int _range, float xWidth, float yWidth, float minY, vector<vector<Edge>>* partitions);
+
 	float get(float x, float y);
 
 	glm::vec3 getNormal(float x, float y);
@@ -69,5 +73,10 @@ public:
 
 bool withinRadius(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii);
 float areaCovered(vec2 center, float radius, const vector<vec2>& centers, const vector<float>& radii);
+
+float polygonCoverage(vec2 point, vector<vector<Edge>>* partition, float minY, float maxY, float width, float height, unsigned int comparisons);
+bool inPolygon(vec2 point, vector<Edge>* edges);
+
+bool inPartitionedPolygon(vec2 point, vector<vector<Edge>>* partition, float minY, float maxY);
 
 #endif
