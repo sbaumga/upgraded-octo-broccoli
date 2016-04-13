@@ -89,12 +89,14 @@
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="mapLoader.cpp" />
     <ClCompile Include="noise.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="mapLoader.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="noise.h" />
     <ClInclude Include="Shaders.h" />

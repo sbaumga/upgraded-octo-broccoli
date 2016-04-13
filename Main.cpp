@@ -10,6 +10,7 @@
 
 #include "Renderer.h"
 #include "camera.h"
+#include "mapLoader.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -75,6 +76,7 @@ float erasingRadius = 0.05f;
 float rotateX, rotateZ = 0;
 
 bool renderTerrain = false;
+bool debugging = false;
 
 //3D manipulation
 Camera lookat;
@@ -485,67 +487,93 @@ void renderDrawing() {
 	glEnd();
 	
 	
-	// Debugging edge detection
-	float sliceStart = 0.f;
-	float sliceSize = 0.1f;
-
-	vector<Edge> edgesInSlice = findEdges(GROUND, sliceStart+sliceSize, sliceStart);
-	vector<vector<Edge>> partition;
-
-	partitionEdgesIntoSlices(GROUND, canvasHeight*-0.5, canvasHeight*0.5, NUMBER_OF_SLICES, &partition);
-
-	printf("Segments in slice = %d\n", partition.size());
-
-	glBegin(GL_LINES);
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex2f(-10.0f, sliceStart);
-	glVertex2f(10.0f, sliceStart);
-
-	glVertex2f(-10.0f, sliceStart + sliceSize);
-	glVertex2f(10.0f, sliceStart + sliceSize);
-
-
-/*	glLineWidth(5.f);
-	glColor3f(1.f, 0.f, 0.f);
-	for (unsigned int i = 0; i < partition.size(); i++)
+	if (debugging)
 	{
-		if (i % 2 == 0)
-		{
+		// Debugging edge detection
+		float sliceStart = 0.f;
+		float sliceSize = 0.1f;
+
+		vector<Edge> edgesInSlice = findEdges(GROUND, sliceStart + sliceSize, sliceStart);
+		vector<vector<Edge>> partition;
+
+		partitionEdgesIntoSlices(GROUND, canvasHeight*-0.5, canvasHeight*0.5, NUMBER_OF_SLICES, &partition);
+
+		printf("Segments in slice = %d\n", partition.size());
+
+		glBegin(GL_LINES);
+
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex2f(-10.0f, sliceStart);
+		glVertex2f(10.0f, sliceStart);
+
+		glVertex2f(-10.0f, sliceStart + sliceSize);
+		glVertex2f(10.0f, sliceStart + sliceSize);
+
+
+		/*	glLineWidth(5.f);
+			glColor3f(1.f, 0.f, 0.f);
+			for (unsigned int i = 0; i < partition.size(); i++)
+			{
+			if (i % 2 == 0)
+			{
 			glColor3f(
-				1.f - (float)i / (float)(partition.size() - 1),
-				0.f,
-				(float)i / (float)(partition.size() - 1));
+			1.f - (float)i / (float)(partition.size() - 1),
+			0.f,
+			(float)i / (float)(partition.size() - 1));
 
 			for (unsigned int j = 0; j < partition[i].size(); j++)
 			{
-				glVertex2f(partition[i][j].p1->x + 0.1f, partition[i][j].p1->y);
-				glVertex2f(partition[i][j].p2->x + 0.1f, partition[i][j].p2->y);
+			glVertex2f(partition[i][j].p1->x + 0.1f, partition[i][j].p1->y);
+			glVertex2f(partition[i][j].p2->x + 0.1f, partition[i][j].p2->y);
+			}
+			}
+
+			}
+
+			glEnd();
+
+			glLineWidth(1.f);*/
+
+		float increment = canvasHeight / 29.f;
+
+		glBegin(GL_POINTS);
+		for (unsigned int i = 0; i < 30; i++)
+		{
+			for (unsigned int j = 0; j < 30; j++)
+			{
+				vec2 point(
+					increment*(float)i - canvasWidth*0.5f,
+					increment*(float)j - canvasHeight*0.5f);
+
+				if (inPartitionedPolygon(point, &partition, -canvasHeight*0.5f, canvasHeight*0.5f))
+					glVertex2f(point.x, point.y);
 			}
 		}
-		
-	}
+		glEnd();
 
-	glEnd();
+		//Debugging
+		getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
 
-	glLineWidth(1.f);*/
-
-	float increment = canvasHeight / 29.f;
-
-	glBegin(GL_POINTS);
-	for (unsigned int i = 0; i < 30; i++)
-	{
-		for (unsigned int j = 0; j < 30; j++)
+		glPointSize(2.f);
+		glBegin(GL_POINTS);
+		glColor3f(1.f, 0.f, 0.f);
+		for (unsigned int i = 0; i < mountainCenters.size(); i++)
 		{
-			vec2 point(
-				increment*(float)i - canvasWidth*0.5f,
-				increment*(float)j - canvasHeight*0.5f);
-
-			if (inPartitionedPolygon(point, &partition, -canvasHeight*0.5f, canvasHeight*0.5f))
-				glVertex2f(point.x, point.y);
+			glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
 		}
+		glEnd();
+
+		glBegin(GL_LINES);
+		glColor3f(0.f, 1.f, 1.f);
+		for (unsigned int i = 0; i < mountainCenters.size(); i++)
+		{
+			glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
+			glVertex2f(mountainCenters[i].x, mountainCenters[i].y + mountainRadii[i]);
+		}
+		glEnd();
+
+		glPointSize(2.f);
 	}
-	glEnd();
 	
 	
 
@@ -716,26 +744,7 @@ void renderDrawing() {
 		glEnd();
 	}
 
-	//Debugging
-	getBoundingCirclesFromMountainLines(&mountainCenters, &mountainRadii);
-
-	glPointSize(2.f);
-	glBegin(GL_POINTS);
-	glColor3f(1.f, 0.f, 0.f);
-	for (unsigned int i = 0; i < mountainCenters.size(); i++)
-	{
-		glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
-	}
-	glEnd();
-
-	glBegin(GL_LINES);
-	glColor3f(0.f, 1.f, 1.f);
-	for (unsigned int i = 0; i < mountainCenters.size(); i++)
-	{
-		glVertex2f(mountainCenters[i].x, mountainCenters[i].y);
-		glVertex2f(mountainCenters[i].x, mountainCenters[i].y + mountainRadii[i]);
-	}
-	glEnd();
+	
 
 	//Range
 	float stepSize = canvasHeight / (float)(RANGE - 1);
@@ -1568,13 +1577,13 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				lineTypes.back() = drawType;
 			}
 		}
-		
+
 		else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
 			/*
 			Removed as will not be doing tree stuff
 			drawType = TREES;
 			if (drawing) {
-				lineTypes.back() = drawType;
+			lineTypes.back() = drawType;
 			}
 			*/
 		}
@@ -1590,13 +1599,48 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 				erasing = !erasing;
 			}
 		}
-		
+		else if (key == GLFW_KEY_D && action == GLFW_PRESS){
+			debugging = !debugging;
+		}
+
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
 			renderTerrain = true;
 			//createRandomizedPlane();
 			if (drawing) {
 				finishLine();
 			}
+		}
+		else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+			if (saveMap("maps/saved.map", &controlPoints, &lineTypes))
+				printf("Map saved\n");
+
+		}
+		else if (key == GLFW_KEY_L && action == GLFW_PRESS){
+			if (loadMap("maps/load.map", &controlPoints, &lineTypes))
+			{
+				printf("Map loaded\n");
+
+				knots.clear();
+				lineTypes2.clear();
+				plottedPoints.clear();
+
+				for (unsigned int i = 0; i < controlPoints.size(); i++)
+				{
+					vector <double> temp;
+					knots.push_back(temp);
+					recalculateKnots(i);
+					vector <vec2> temp2;
+					lineTypes2.push_back(lineTypes[i]);
+					plottedPoints.push_back(temp2);
+					for (double u = 0; u <= 1; u += 1.0 / uStep) {
+						calculateBSpline(u, i);
+					}
+					calculateBSpline(0.99999999999, i);
+				}
+			
+
+			}
+			
 		}
 	}
 	else {

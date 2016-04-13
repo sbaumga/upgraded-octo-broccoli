@@ -6,11 +6,13 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="Shaders.cpp" />
+    <ClCompile Include="mapLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="noise.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="Shaders.h" />
+    <ClInclude Include="mapLoader.h" />
   </ItemGroup>
 </Project>
