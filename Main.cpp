@@ -1416,6 +1416,7 @@ void finishLine() {
 				plottedPoints.erase(plottedPoints.begin() + mergeIndexStart);
 				controlPoints.erase(controlPoints.begin() + mergeIndexStart);
 				lineTypes.erase(lineTypes.begin() + mergeIndexStart);
+				lineTypes2.erase(lineTypes2.begin() + mergeIndexStart);
 				knots.erase(knots.begin() + mergeIndexStart);
 
 				if (mergeIndexEnd != -1 && mergeIndexStart != mergeIndexEnd) {
@@ -1427,6 +1428,7 @@ void finishLine() {
 					plottedPoints.erase(plottedPoints.begin() + mergeIndexEnd);
 					controlPoints.erase(controlPoints.begin() + mergeIndexEnd);
 					lineTypes.erase(lineTypes.begin() + mergeIndexEnd);
+					lineTypes2.erase(lineTypes2.begin() + mergeIndexEnd);
 					knots.erase(knots.begin() + mergeIndexEnd);
 				}
 			}
@@ -1434,6 +1436,7 @@ void finishLine() {
 				plottedPoints.erase(plottedPoints.begin() + mergeIndexEnd);
 				controlPoints.erase(controlPoints.begin() + mergeIndexEnd);
 				lineTypes.erase(lineTypes.begin() + mergeIndexEnd);
+				lineTypes2.erase(lineTypes2.begin() + mergeIndexEnd);
 				knots.erase(knots.begin() + mergeIndexEnd);
 			}
 			
@@ -1751,7 +1754,7 @@ void mouseClick(GLFWwindow *sender, int button, int action, int mods) {
 					knots.push_back(temp);
 					recalculateKnots(i);
 					vector <vec2> temp2;
-					lineTypes2.push_back(lineTypes.back());
+					lineTypes2.push_back(lineTypes[i]);
 					plottedPoints.push_back(temp2);
 					for (double u = 0; u <= 1; u += 1.0 / uStep) {
 						calculateBSpline(u, i);
