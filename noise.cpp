@@ -96,6 +96,10 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 	float xOffset = -xWidth*0.5f;
 	float yOffset = -yWidth*0.5f;
 
+	int comparisons = std::max(5-freq, 1);
+
+	
+
 	for (int i = 0; i<dimension; i++)
 	{
 		for (int j = 0; j<dimension; j++)
@@ -110,11 +114,11 @@ dimension(pow(2, _freq)*_range), amplitude(pow(_persistence, _freq))
 			else
 				coverage = -1.f;*/
 
-			coverage = polygonCoverage(center, partitions, minY, minY + yWidth, width, height, 5);
+			coverage = polygonCoverage(center, partitions, minY, minY + yWidth, width, height, comparisons);
 
 			float randomValue = ((float)rand() / RAND_MAX);
 			if (coverage >= 0.99f)
-				noise.push_back((randomValue*amplitude*0.75f + 0.25f)*coverage);
+				noise.push_back((randomValue*amplitude*0.5f + 0.5f)*coverage);
 			else
 				noise.push_back(-randomValue*amplitude);
 		}

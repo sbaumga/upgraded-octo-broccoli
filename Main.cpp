@@ -16,8 +16,8 @@
 using namespace std;
 using namespace glm;
 
-const int PLANE_DIM_X = 100;
-const int PLANE_DIM_Z = 100;
+const int PLANE_DIM_X = 400;
+const int PLANE_DIM_Z = 400;
 
 enum
 {
@@ -38,12 +38,12 @@ enum
 const unsigned int NUMBER_OF_SLICES = 50;
 
 
-unsigned int OCTAVES = 4;
-float PERSISTENCE = 0.3f;
+unsigned int OCTAVES = 5;
+float PERSISTENCE = 0.4f;
 unsigned int RANGE = 40;
 
-unsigned int LAND_OCTAVES = 4;
-float LAND_PERSISTENCE = 0.2;
+unsigned int LAND_OCTAVES = 7;
+float LAND_PERSISTENCE = 0.6;
 unsigned int LAND_RANGE = 8;
 
 PerlinNoise mountainNoise(OCTAVES, PERSISTENCE, RANGE);
@@ -1478,9 +1478,12 @@ void createRandomizedPlane()
 		vec2 uv = terrainUVs[i];
 		vec3 point = terrainPoints[i];
 
+		float noiseContribution = landNoise.get(-uv.x + 1.f, uv.y)*landScale + mountainNoise.get(-uv.x + 1.f, uv.y)*scale;
+
 		terrainPoints[i] = vec3(
 			point.x, 
-			landNoise.get(-uv.x + 1.f, uv.y)*landScale + mountainNoise.get(-uv.x + 1.f, uv.y)*scale - scale*0.5, point.z);
+			std::max(noiseContribution, 0.f),
+			point.z);
 	}
 
 	//Calculate normals
