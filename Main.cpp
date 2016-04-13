@@ -880,7 +880,7 @@ void erase() {
 	for (int lineNum = 0; lineNum < controlPoints.size(); lineNum++) {
 		
 		// Only erases lines of the correct type
-		if (lineTypes2[lineNum] == drawType) {
+		if (lineTypes[lineNum] == drawType) {
 			bool inLineIndices = false;
 			bool startPointInside = false;
 			// Tracks if the intersection will be moving out of or into the circle
