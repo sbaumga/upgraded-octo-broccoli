@@ -64,7 +64,7 @@ vector < vector < vec2 > > plottedPoints;
 vector<vec2> mountainCenters;
 vector<float> mountainRadii;
 
-double uStep = 1000;
+double uStep = 250;
 int order = 4;
 bool drawing;
 int drawType = GROUND;
@@ -608,7 +608,7 @@ void renderDrawing() {
 	// Draw circle when drawing near end point of line
 	// If cursor is in circle, last point of line will be the first point
 	// to create a fully connected loop
-	if (points.size() > 0) {
+	if (points.size() > 0 && !erasing) {
 		if (abs(points.front().x - mouseX) < selectDistance && abs(points.front().y - mouseY) < selectDistance) {
 			glBegin(GL_POLYGON);
 			if (drawType == GROUND) {
@@ -636,7 +636,7 @@ void renderDrawing() {
 
 	// Draw a circle if near an end point for a line of the same draw type
 	for (int i = 0; i < controlPoints.size(); i++) {
-		if (drawType == lineTypes[i]) {
+		if (drawType == lineTypes[i] && !erasing) {
 			if (abs(controlPoints[i].front().x - mouseX) < selectDistance && abs(controlPoints[i].front().y - mouseY) < selectDistance) {
 				glBegin(GL_POLYGON);
 				if (drawType == GROUND) {
@@ -1568,12 +1568,14 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 	if (!renderTerrain) {
 		if (key == GLFW_KEY_G && action == GLFW_PRESS) {
 			drawType = GROUND;
+			cout << "Ground\n";
 			if (drawing) {
 				lineTypes.back() = drawType;
 			}
 		}
 		else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 			drawType = WATER;
+			cout << "Water\n";
 			if (drawing) {
 				lineTypes.back() = drawType;
 			}
@@ -1590,6 +1592,7 @@ void keyboard(GLFWwindow *sender, int key, int scancode, int action, int mods) {
 		}
 		else if (key == GLFW_KEY_M && action == GLFW_PRESS) {
 			drawType = MOUNTAIN;
+			cout << "Mountain\n";
 			if (drawing) {
 				lineTypes.back() = drawType;
 			}
